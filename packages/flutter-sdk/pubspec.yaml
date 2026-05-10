@@ -1,5 +1,5 @@
 name: trackinghub_flutter
-description: TrackingHub Flutter SDK for shared event envelope emission.
+description: TrackingHub Flutter SDK，用于发送统一事件信封。
 version: 0.1.0
 publish_to: none
 

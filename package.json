@@ -2,7 +2,7 @@
   "name": "trackinghub",
   "private": true,
   "version": "0.1.0",
-  "description": "Internal tracking governance and product analytics platform.",
+  "description": "内部多项目埋点治理与产品分析平台。",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "pnpm --filter web dev",
