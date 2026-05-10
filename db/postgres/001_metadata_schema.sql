@@ -7,6 +7,27 @@ CREATE TABLE workspaces (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'editor', 'viewer')),
+  password_hash TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, email)
+);
+
+CREATE TABLE sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -28,6 +49,19 @@ CREATE TABLE project_environments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (project_id, name)
+);
+
+CREATE TABLE sdk_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_environment_id UUID NOT NULL REFERENCES project_environments(id) ON DELETE CASCADE,
+  source TEXT NOT NULL CHECK (source IN ('web', 'flutter')),
+  key_hash TEXT NOT NULL,
+  masked_key TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'rotating', 'disabled')),
+  last_used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (project_environment_id, source, masked_key)
 );
 
 CREATE TABLE members (
@@ -83,7 +117,7 @@ CREATE TABLE event_definitions (
   trigger_timing TEXT NOT NULL DEFAULT '',
   module TEXT NOT NULL,
   platforms TEXT[] NOT NULL DEFAULT '{}',
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'released', 'accepted', 'deprecated')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'released', 'accepted', 'deprecated')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (project_id, name)
@@ -114,6 +148,15 @@ CREATE TABLE event_validation_results (
   errors JSONB NOT NULL DEFAULT '[]'::jsonb,
   sample_event_id TEXT,
   observed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE event_acceptance_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_definition_id UUID NOT NULL REFERENCES event_definitions(id) ON DELETE CASCADE,
+  actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  status TEXT NOT NULL CHECK (status IN ('accepted', 'rejected', 'needs_fix')),
+  note TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE dashboards (
@@ -148,7 +191,10 @@ CREATE TABLE reports (
   generated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE INDEX idx_sessions_token_hash ON sessions(token_hash);
+CREATE INDEX idx_sdk_keys_environment_status ON sdk_keys(project_environment_id, status);
 CREATE INDEX idx_tracking_requests_project_status ON tracking_requests(project_id, status);
 CREATE INDEX idx_event_definitions_project_status ON event_definitions(project_id, status);
 CREATE INDEX idx_event_validation_recent ON event_validation_results(project_id, event_name, observed_at DESC);
+CREATE INDEX idx_event_acceptance_definition_created ON event_acceptance_records(event_definition_id, created_at DESC);
 CREATE INDEX idx_reports_project_generated ON reports(project_id, generated_at DESC);
