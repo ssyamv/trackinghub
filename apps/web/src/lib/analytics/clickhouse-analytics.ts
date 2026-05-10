@@ -28,6 +28,7 @@ export type AnalyticsFilters = {
   environment?: AnalyticsEnvironment;
   source?: AnalyticsSource;
   eventName?: string;
+  funnelSteps: string[];
   granularity: AnalyticsGranularity;
   range: AnalyticsRange;
 };
@@ -39,6 +40,8 @@ export type AnalyticsFilterInput = Partial<{
   source: unknown;
   eventName: unknown;
   event_name: unknown;
+  funnelSteps: unknown;
+  funnel_steps: unknown;
   granularity: unknown;
   range: unknown;
 }>;
@@ -52,6 +55,7 @@ type AnalyticsEnv = Record<string, string | undefined>;
 type ClickHouseRow = Record<string, unknown>;
 
 export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
+  funnelSteps: [...DEFAULT_FUNNEL_EVENTS],
   granularity: "day",
   range: "7d",
 };
@@ -67,11 +71,38 @@ function firstValue(value: unknown) {
 function cleanIdentifier(value: unknown) {
   const input = firstValue(value);
 
+  return cleanIdentifierValue(input);
+}
+
+function cleanIdentifierValue(input: string | undefined) {
   if (!input || input.length > 128) {
     return undefined;
   }
 
   return /^[A-Za-z0-9_.:-]+$/.test(input) ? input : undefined;
+}
+
+function rawFunnelStepValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(rawFunnelStepValues);
+  }
+
+  const input = firstValue(value);
+
+  if (!input) {
+    return [];
+  }
+
+  return input.split(",").map((item) => item.trim());
+}
+
+function normalizeFunnelSteps(value: unknown) {
+  const steps = rawFunnelStepValues(value)
+    .map(cleanIdentifierValue)
+    .filter((item): item is string => Boolean(item))
+    .slice(0, 8);
+
+  return steps.length >= 2 ? steps : [...DEFAULT_FUNNEL_EVENTS];
 }
 
 export function normalizeAnalyticsFilters(
@@ -90,6 +121,7 @@ export function normalizeAnalyticsFilters(
         : undefined,
     source: source === "web" || source === "flutter" ? source : undefined,
     eventName: cleanIdentifier(input.eventName ?? input.event_name),
+    funnelSteps: normalizeFunnelSteps(input.funnelSteps ?? input.funnel_steps),
     granularity: granularity === "hour" ? "hour" : "day",
     range: range === "30d" ? "30d" : "7d",
   };
@@ -239,7 +271,7 @@ function filterConditions(
     conditions.push(`event_name = ${clickHouseString(filters.eventName)}`);
   }
 
-  return conditions.map((condition) => `      ${condition}`).join("\n      AND ");
+  return conditions.join("\n      AND ");
 }
 
 function bucketExpression(filters: AnalyticsFilters) {
@@ -290,10 +322,38 @@ function buildTrendQuery(filters: AnalyticsFilters) {
 }
 
 function buildFunnelQuery(filters: AnalyticsFilters) {
-  const [step1, step2, step3, step4] = DEFAULT_FUNNEL_EVENTS;
-  const eventList = DEFAULT_FUNNEL_EVENTS.map((eventName) => `'${eventName}'`).join(
-    ", ",
-  );
+  const eventList = filters.funnelSteps.map(clickHouseString).join(", ");
+  const stepColumns = filters.funnelSteps
+    .map(
+      (eventName, index) =>
+        [
+          "          minIf(timestamp, event_name = ",
+          clickHouseString(eventName),
+          `) AS step_${index + 1}_at`,
+        ].join(""),
+    )
+    .join(",\n");
+  const stepQueries = filters.funnelSteps
+    .map((eventName, index) => {
+      const stepNumber = index + 1;
+      const completedSteps = Array.from(
+        { length: stepNumber },
+        (_, stepIndex) => `step_${stepIndex + 1}_at`,
+      );
+      const conditions = [
+        `${completedSteps[0]} > zero`,
+        ...completedSteps
+          .slice(1)
+          .map((stepAt, stepIndex) => `${stepAt} >= ${completedSteps[stepIndex]}`),
+      ].join(" AND ");
+
+      return [
+        `    SELECT '${stepNumber}' AS step, `,
+        `${clickHouseString(eventName)} AS event_name, `,
+        `countIf(${conditions}) AS users FROM per_user`,
+      ].join("");
+    })
+    .join("\n    UNION ALL\n");
 
   return `
     WITH
@@ -301,22 +361,13 @@ function buildFunnelQuery(filters: AnalyticsFilters) {
       per_user AS (
         SELECT
           ${identityExpression()} AS identity,
-          minIf(timestamp, event_name = '${step1}') AS step_1_at,
-          minIf(timestamp, event_name = '${step2}') AS step_2_at,
-          minIf(timestamp, event_name = '${step3}') AS step_3_at,
-          minIf(timestamp, event_name = '${step4}') AS step_4_at
+${stepColumns}
         FROM raw_events
         WHERE ${filterConditions(filters, "timestamp", { includeEventName: false }).trim()}
           AND event_name IN (${eventList})
         GROUP BY identity
       )
-    SELECT '1' AS step, '${step1}' AS event_name, countIf(step_1_at > zero) AS users FROM per_user
-    UNION ALL
-    SELECT '2' AS step, '${step2}' AS event_name, countIf(step_1_at > zero AND step_2_at >= step_1_at) AS users FROM per_user
-    UNION ALL
-    SELECT '3' AS step, '${step3}' AS event_name, countIf(step_1_at > zero AND step_2_at >= step_1_at AND step_3_at >= step_2_at) AS users FROM per_user
-    UNION ALL
-    SELECT '4' AS step, '${step4}' AS event_name, countIf(step_1_at > zero AND step_2_at >= step_1_at AND step_3_at >= step_2_at AND step_4_at >= step_3_at) AS users FROM per_user
+${stepQueries}
     ORDER BY step ASC
     FORMAT JSONEachRow
   `;

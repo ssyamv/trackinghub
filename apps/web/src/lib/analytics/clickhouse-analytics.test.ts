@@ -187,4 +187,70 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     expect(decodedQueries[3]).toContain("environment = 'prod'");
     expect(decodedQueries[3]).toContain("source = 'web'");
   });
+
+  it("uses configurable funnel steps from URL filters", async () => {
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+    const responses = [
+      [{ event_count: "10", active_users: "5", last_received_at: "" }],
+      [{ validation_count: "0", invalid_count: "0" }],
+      [],
+      [
+        { step: "1", event_name: "signup_view", users: "100" },
+        { step: "2", event_name: "signup_submit", users: "75" },
+        { step: "3", event_name: "signup_success", users: "50" },
+      ],
+    ];
+
+    const client = createClickHouseAnalyticsClientFromEnv(
+      {
+        TRACKINGHUB_CLICKHOUSE_URL: "https://clickhouse.example.com",
+      },
+      async (url, init) => {
+        requests.push({ url: String(url), init });
+        const body = responses
+          .shift()
+          ?.map((row) => JSON.stringify(row))
+          .join("\n");
+        return new Response(`${body ?? ""}\n`, { status: 200 });
+      },
+    );
+
+    const result = await client?.loadAnalytics({
+      funnel_steps: "signup_view, signup_submit, signup_success",
+      environment: "prod",
+    });
+
+    const funnelQuery = decodeURIComponent(
+      new URL(requests[3].url).searchParams.get("query") ?? "",
+    );
+
+    expect(result?.funnelSteps).toEqual([
+      {
+        step: "1",
+        eventName: "signup_view",
+        users: "100",
+        conversion: "100%",
+      },
+      {
+        step: "2",
+        eventName: "signup_submit",
+        users: "75",
+        conversion: "75.0%",
+      },
+      {
+        step: "3",
+        eventName: "signup_success",
+        users: "50",
+        conversion: "50.0%",
+      },
+    ]);
+    expect(funnelQuery).toContain(
+      "event_name IN ('signup_view', 'signup_submit', 'signup_success')",
+    );
+    expect(funnelQuery).toContain(
+      "SELECT '3' AS step, 'signup_success' AS event_name",
+    );
+    expect(funnelQuery).not.toContain("subscription_success");
+    expect(funnelQuery).not.toContain("step_4_at");
+  });
 });

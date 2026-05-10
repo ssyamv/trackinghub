@@ -196,6 +196,11 @@ describe("TrackingHub dashboard components", () => {
       <AnalyticsWorkbench
         filters={{
           eventName: "",
+          funnelSteps: [
+            "product_detail_view",
+            "pay_button_click",
+            "checkout_submit",
+          ],
           granularity: "day",
           range: "7d",
         }}
@@ -222,6 +227,8 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain('name="environment"');
     expect(html).toContain('name="source"');
     expect(html).toContain('name="event_name"');
+    expect(html).toContain('name="funnel_steps"');
+    expect(html).toContain("product_detail_view, pay_button_click, checkout_submit");
     expect(html).toContain('name="range"');
     expect(html).toContain('name="granularity"');
     expect(html).toContain("事件趋势");

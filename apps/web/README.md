@@ -33,7 +33,7 @@ TRACKINGHUB_CLICKHOUSE_PASSWORD=secret
 
 ## 分析查询配置
 
-`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和默认漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`range=7d|30d` 和 `granularity=day|hour`。未配置 ClickHouse 或查询失败时，页面继续显示示例数据，便于本地开发和静态演示。
+`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`funnel_steps`、`range=7d|30d` 和 `granularity=day|hour`。`funnel_steps` 使用英文逗号分隔事件名；未提供或不足 2 步时回到默认商业化漏斗。未配置 ClickHouse 或查询失败时，页面继续显示示例数据，便于本地开发和静态演示。
 
 ## 元数据数据库与本地管理员
 

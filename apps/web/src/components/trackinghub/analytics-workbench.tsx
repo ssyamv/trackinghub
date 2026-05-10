@@ -121,6 +121,15 @@ export function AnalyticsWorkbench({
               placeholder="pay_button_click"
             />
           </FilterField>
+          <div className="md:col-span-2 xl:col-span-2">
+            <FilterField label="漏斗步骤">
+              <Input
+                defaultValue={filters.funnelSteps.join(", ")}
+                name="funnel_steps"
+                placeholder="product_detail_view, pay_button_click"
+              />
+            </FilterField>
+          </div>
           <FilterField label="时间范围">
             <select
               className={selectClassName}
@@ -256,7 +265,7 @@ export function AnalyticsWorkbench({
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">漏斗步骤</CardTitle>
           <CardDescription>
-            当前示例：商品详情页到订阅成功，用于检查核心商业化转化。
+            按当前漏斗步骤和筛选范围计算逐步转化。
           </CardDescription>
         </CardHeader>
         <CardContent>
