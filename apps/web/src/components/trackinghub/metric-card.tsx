@@ -6,16 +6,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { StatusCard } from "@/lib/trackinghub/sample-data";
 
-const toneClassName: Record<StatusCard["tone"], string> = {
+export type MetricCardProps = {
+  label: string;
+  value: string;
+  detail: string;
+  tone: "blue" | "green" | "purple" | "red";
+};
+
+const toneClassName: Record<MetricCardProps["tone"], string> = {
   blue: "bg-chart-1/20",
   green: "bg-chart-2/20",
   purple: "bg-chart-5/20",
   red: "bg-destructive/20",
 };
 
-export function MetricCard({ label, value, detail, tone }: StatusCard) {
+export function MetricCard({ label, value, detail, tone }: MetricCardProps) {
   return (
     <Card className="min-h-[154px] overflow-hidden">
       <CardHeader className="gap-4 pb-2">

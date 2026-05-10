@@ -1,5 +1,5 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,19 +8,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export type EmptyPageStateProps = {
+  badge: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+  sections: string[];
+};
+
 export function EmptyPageState({
   badge,
   title,
   description,
-  actionLabel,
+  action,
   sections,
-}: {
-  badge: string;
-  title: string;
-  description: string;
-  actionLabel: string;
-  sections: string[];
-}) {
+}: EmptyPageStateProps) {
   return (
     <Card>
       <CardHeader>
@@ -43,7 +45,7 @@ export function EmptyPageState({
             </div>
           ))}
         </div>
-        <Button className="w-fit">{actionLabel}</Button>
+        {action ? <div className="w-fit">{action}</div> : null}
       </CardContent>
     </Card>
   );
