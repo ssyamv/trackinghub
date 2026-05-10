@@ -5,6 +5,7 @@ dist/
 coverage/
 .turbo/
 .superpowers/
+.worktrees/
 
 .env
 .env.*
