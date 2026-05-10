@@ -40,4 +40,50 @@ describe("governance api mapper", () => {
     expect(result.eventDetail.requiredProperties[0].name).toBe("product_id");
     expect(result.editableDefinitions[0].eventName).toBe("pay_button_click");
   });
+
+  it("preserves event ids and editable statuses from metadata definitions", () => {
+    const result = mapGovernanceOverviewToWorkbench({
+      definitions: [
+        {
+          id: "event_project_a",
+          projectId: "project_a",
+          projectName: "Magic Frame",
+          name: "pay_button_click",
+          displayName: "支付按钮点击",
+          description: "点击支付按钮",
+          triggerTiming: "点击支付主按钮",
+          module: "checkout",
+          platforms: ["web"],
+          status: "draft",
+          requiredProperties: [],
+          optionalProperties: [],
+          lastSeenAt: null,
+        },
+        {
+          id: "event_project_b",
+          projectId: "project_b",
+          projectName: "Homture",
+          name: "pay_button_click",
+          displayName: "支付按钮点击",
+          description: "官网支付按钮点击",
+          triggerTiming: "点击官网支付主按钮",
+          module: "website",
+          platforms: ["flutter"],
+          status: "deprecated",
+          requiredProperties: [],
+          optionalProperties: [],
+          lastSeenAt: null,
+        },
+      ],
+    });
+
+    expect(result.events).toEqual([
+      expect.objectContaining({ id: "event_project_a" }),
+      expect.objectContaining({ id: "event_project_b" }),
+    ]);
+    expect(result.editableDefinitions.map((item) => item.status)).toEqual([
+      "draft",
+      "deprecated",
+    ]);
+  });
 });

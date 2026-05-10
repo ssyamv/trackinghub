@@ -72,7 +72,7 @@ export function GovernanceWorkbench({
             </TableHeader>
             <TableBody>
               {events.map((event) => (
-                <TableRow key={event.eventName}>
+                <TableRow key={event.id}>
                   <TableCell className="min-w-56 whitespace-normal">
                     <div className="font-semibold text-foreground">
                       {event.displayName}

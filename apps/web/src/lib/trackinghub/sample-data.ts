@@ -42,6 +42,7 @@ export type PageShell = {
 export type EventDictionaryStatus = "ready" | "needs_fix" | "accepted";
 
 export type EventDictionaryItem = {
+  id: string;
   eventName: string;
   displayName: string;
   project: string;
@@ -196,6 +197,7 @@ export const governanceSummaryCards: StatusCard[] = [
 
 export const eventDictionaryItems: EventDictionaryItem[] = [
   {
+    id: "sample_pay_button_click_magic_frame",
     eventName: "pay_button_click",
     displayName: "支付按钮点击",
     project: "Magic Frame",
@@ -207,6 +209,7 @@ export const eventDictionaryItems: EventDictionaryItem[] = [
     lastSeen: "2 分钟前",
   },
   {
+    id: "sample_campaign_card_view_homture",
     eventName: "campaign_card_view",
     displayName: "活动卡片曝光",
     project: "Homture",
@@ -218,6 +221,7 @@ export const eventDictionaryItems: EventDictionaryItem[] = [
     lastSeen: "8 分钟前",
   },
   {
+    id: "sample_subscription_success_magic_frame",
     eventName: "subscription_success",
     displayName: "订阅成功",
     project: "Magic Frame",
@@ -229,6 +233,7 @@ export const eventDictionaryItems: EventDictionaryItem[] = [
     lastSeen: "23 分钟前",
   },
   {
+    id: "sample_onboarding_finish_local_drop",
     eventName: "onboarding_finish",
     displayName: "新手引导完成",
     project: "Local Drop",

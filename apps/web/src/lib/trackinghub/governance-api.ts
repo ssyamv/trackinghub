@@ -55,14 +55,6 @@ function detailPropertyType(type: EventPropertyRecord["type"]) {
   return type === "number" || type === "boolean" ? type : "string";
 }
 
-function editableStatus(status: EventDefinitionStatus) {
-  if (status === "accepted" || status === "ready") {
-    return status;
-  }
-
-  return "released" as const;
-}
-
 export function mapGovernanceOverviewToWorkbench(
   overview: GovernanceOverview,
 ): GovernanceWorkbenchData {
@@ -98,6 +90,7 @@ export function mapGovernanceOverviewToWorkbench(
       },
     ],
     events: overview.definitions.map((definition) => ({
+      id: definition.id,
       eventName: definition.name,
       displayName: definition.displayName,
       project: definition.projectName,
@@ -140,7 +133,7 @@ export function mapGovernanceOverviewToWorkbench(
       requiredProperties: definition.requiredProperties.map(
         (property) => property.name,
       ),
-      status: editableStatus(definition.status),
+      status: definition.status,
     })),
   };
 }

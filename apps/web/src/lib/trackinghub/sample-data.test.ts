@@ -73,6 +73,7 @@ describe("TrackingHub sample data", () => {
     expect(eventDictionaryItems.map((item) => item.eventName)).toContain(
       "pay_button_click",
     );
+    expect(eventDictionaryItems.every((item) => item.id.length > 0)).toBe(true);
     expect(featuredEventDetail.eventName).toBe("pay_button_click");
     expect(featuredEventDetail.requiredProperties.map((item) => item.name)).toEqual([
       "product_id",
