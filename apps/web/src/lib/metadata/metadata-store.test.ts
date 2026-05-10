@@ -92,6 +92,37 @@ describe("metadata store contract", () => {
     expect(nextOverview.projects[0].platforms).toEqual(["web"]);
   });
 
+  it("updates SDK key status", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    const sdkKey = await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: "hash",
+    });
+
+    const updatedSdkKey = await store.updateSdkKeyStatus(
+      sdkKey.id,
+      "disabled",
+    );
+    const overview = await store.listProjectsOverview();
+
+    expect(updatedSdkKey.status).toBe("disabled");
+    expect(overview.sdkKeys[0].status).toBe("disabled");
+  });
+
   it("does not expose internal event definition references from list results", async () => {
     const store = createMemoryMetadataStore();
     const project = await store.createProject({

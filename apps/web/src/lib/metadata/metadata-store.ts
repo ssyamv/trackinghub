@@ -103,6 +103,10 @@ export type MetadataStore = {
       "id" | "projectId" | "projectName" | "environment" | "lastUsedAt"
     >,
   ): Promise<SdkKeyRecord>;
+  updateSdkKeyStatus(
+    sdkKeyId: string,
+    status: SdkKeyStatus,
+  ): Promise<SdkKeyRecord>;
   listEventDefinitions(): Promise<GovernanceOverview>;
   createEventDefinition(
     input: Omit<
@@ -238,6 +242,21 @@ export function createMemoryMetadataStore(): MetadataStore {
       sdkKeys.push(sdkKey);
 
       return cloneSdkKey(sdkKey);
+    },
+
+    async updateSdkKeyStatus(sdkKeyId, status) {
+      const sdkKeyIndex = sdkKeys.findIndex((item) => item.id === sdkKeyId);
+
+      if (sdkKeyIndex < 0) {
+        throw new MetadataStoreError("SDK_KEY_NOT_FOUND");
+      }
+
+      sdkKeys[sdkKeyIndex] = {
+        ...sdkKeys[sdkKeyIndex],
+        status,
+      };
+
+      return cloneSdkKey(sdkKeys[sdkKeyIndex]);
     },
 
     async listEventDefinitions() {
