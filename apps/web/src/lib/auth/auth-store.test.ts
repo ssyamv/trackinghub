@@ -6,6 +6,7 @@ import {
   type UserRole,
 } from "./permissions";
 import {
+  clearSessionCookie,
   createSessionCookie,
   parseSessionCookie,
   SESSION_COOKIE_NAME,
@@ -45,5 +46,19 @@ describe("session cookies", () => {
     expect(
       parseSessionCookie(`${SESSION_COOKIE_NAME}=token_123; theme=dark`),
     ).toBe("token_123");
+  });
+
+  it("returns null for malformed session cookie values", () => {
+    expect(parseSessionCookie(`${SESSION_COOKIE_NAME}=%E0%A4%A`)).toBeNull();
+  });
+
+  it("clears secure session cookies when requested", () => {
+    const cookie = clearSessionCookie(true);
+
+    expect(cookie).toContain(`${SESSION_COOKIE_NAME}=`);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Path=/");
+    expect(cookie).toContain("Secure");
   });
 });

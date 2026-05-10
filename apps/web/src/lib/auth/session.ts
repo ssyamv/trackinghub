@@ -25,14 +25,22 @@ export function createSessionCookie(
   return parts.join("; ");
 }
 
-export function clearSessionCookie() {
-  return [
+export function clearSessionCookie(
+  secure = process.env.NODE_ENV === "production",
+) {
+  const parts = [
     `${SESSION_COOKIE_NAME}=`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
     "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
-  ].join("; ");
+  ];
+
+  if (secure) {
+    parts.push("Secure");
+  }
+
+  return parts.join("; ");
 }
 
 export function parseSessionCookie(cookieHeader: string | null) {
@@ -44,7 +52,11 @@ export function parseSessionCookie(cookieHeader: string | null) {
     const [name, ...valueParts] = part.trim().split("=");
 
     if (name === SESSION_COOKIE_NAME) {
-      return decodeURIComponent(valueParts.join("="));
+      try {
+        return decodeURIComponent(valueParts.join("="));
+      } catch {
+        return null;
+      }
     }
   }
 

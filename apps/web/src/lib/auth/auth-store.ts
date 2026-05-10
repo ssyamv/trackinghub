@@ -10,7 +10,7 @@ export type AuthUserRecord = AuthenticatedUser & {
   enabled: boolean;
 };
 
-export type SessionRecord = {
+export type CreatedSession = {
   id: string;
   token: string;
   tokenHash: string;
@@ -18,9 +18,11 @@ export type SessionRecord = {
   expiresAt: Date;
 };
 
+export type StoredSessionRecord = Omit<CreatedSession, "token">;
+
 export type AuthStore = {
   findUserByEmail(email: string): Promise<AuthUserRecord | null>;
-  createSession(userId: string, expiresAt: Date): Promise<SessionRecord>;
+  createSession(userId: string, expiresAt: Date): Promise<CreatedSession>;
   findUserBySessionToken(
     token: string,
     now?: Date,
