@@ -4,6 +4,7 @@ out/
 dist/
 coverage/
 .turbo/
+.superpowers/
 
 .env
 .env.*
