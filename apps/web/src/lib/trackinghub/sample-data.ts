@@ -94,6 +94,7 @@ export type ProjectEnvironmentItem = {
 };
 
 export type SdkKeyItem = {
+  id: string;
   project: string;
   environment: string;
   source: "Web" | "Flutter";
@@ -367,6 +368,7 @@ export const projectEnvironmentItems: ProjectEnvironmentItem[] = [
 
 export const sdkKeyItems: SdkKeyItem[] = [
   {
+    id: "sample_sdk_key_magic_frame_prod_web",
     project: "Magic Frame",
     environment: "prod",
     source: "Web",
@@ -375,6 +377,7 @@ export const sdkKeyItems: SdkKeyItem[] = [
     lastUsed: "2 分钟前",
   },
   {
+    id: "sample_sdk_key_magic_frame_prod_flutter",
     project: "Magic Frame",
     environment: "prod",
     source: "Flutter",
@@ -383,6 +386,7 @@ export const sdkKeyItems: SdkKeyItem[] = [
     lastUsed: "3 分钟前",
   },
   {
+    id: "sample_sdk_key_magic_frame_staging_web",
     project: "Magic Frame",
     environment: "staging",
     source: "Web",
@@ -391,6 +395,7 @@ export const sdkKeyItems: SdkKeyItem[] = [
     lastUsed: "18 分钟前",
   },
   {
+    id: "sample_sdk_key_local_drop_dev_flutter",
     project: "Local Drop",
     environment: "dev",
     source: "Flutter",

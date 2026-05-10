@@ -172,7 +172,7 @@ export function ProjectManagementWorkbench({
               </TableHeader>
               <TableBody>
                 {sdkKeys.map((key) => (
-                  <TableRow key={`${key.project}-${key.environment}-${key.source}`}>
+                  <TableRow key={key.id}>
                     <TableCell className="whitespace-normal">
                       <div className="font-semibold">{key.project}</div>
                       <div className="mt-1 font-mono text-xs text-muted-foreground">

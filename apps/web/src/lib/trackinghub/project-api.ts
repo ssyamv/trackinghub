@@ -25,6 +25,26 @@ function sdkStatusLabel(status: SdkKeyStatus) {
       : "停用";
 }
 
+function environmentWriteKeyStatus(
+  overview: ProjectsOverview,
+  projectId: string,
+  environmentName: string,
+) {
+  const matchingKeys = overview.sdkKeys.filter(
+    (key) => key.projectId === projectId && key.environment === environmentName,
+  );
+
+  if (matchingKeys.some((key) => key.status === "active")) {
+    return "启用";
+  }
+
+  if (matchingKeys.some((key) => key.status === "rotating")) {
+    return "轮换中";
+  }
+
+  return "停用";
+}
+
 export function mapProjectsOverviewToWorkbench(
   overview: ProjectsOverview,
 ): ProjectManagementWorkbenchProps {
@@ -77,16 +97,14 @@ export function mapProjectsOverviewToWorkbench(
       name: environment.name,
       enabled: environment.enabled,
       lastEventAt: environment.lastEventAt ?? "暂无",
-      writeKeyStatus: overview.sdkKeys.some(
-        (key) =>
-          key.projectId === environment.projectId &&
-          key.environment === environment.name &&
-          key.status === "active",
-      )
-        ? "启用"
-        : "停用",
+      writeKeyStatus: environmentWriteKeyStatus(
+        overview,
+        environment.projectId,
+        environment.name,
+      ),
     })),
     sdkKeys: overview.sdkKeys.map((key) => ({
+      id: key.id,
       project: key.projectName,
       environment: key.environment,
       source: sourceLabel(key.source),

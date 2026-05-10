@@ -96,6 +96,7 @@ describe("TrackingHub sample data", () => {
     expect(projectItems.map((item) => item.slug)).toContain("magic-frame");
     expect(projectEnvironmentItems.map((item) => item.name)).toContain("prod");
     expect(sdkKeyItems.some((item) => item.status === "启用")).toBe(true);
+    expect(sdkKeyItems.every((item) => item.id.length > 0)).toBe(true);
   });
 
   it("keeps analytics templates and report tasks ready", () => {
