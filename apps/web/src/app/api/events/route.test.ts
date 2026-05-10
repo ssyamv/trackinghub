@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { handleEventPost, POST } from "./route";
+import {
+  createMemoryMetadataStore,
+  hashSdkWriteKey,
+} from "@/lib/metadata/metadata-store";
 
 const payload = {
   project_id: "project_x",
@@ -126,6 +130,206 @@ describe("POST /api/events", () => {
         observed_at: "2026-05-10T07:30:00.000Z",
       },
     ]);
+  });
+
+  it("rejects events when metadata-backed SDK write key validation fails", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: hashSdkWriteKey("expected_write_key"),
+    });
+
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "x-trackinghub-write-key": "wrong_write_key" },
+        body: JSON.stringify({ ...payload, project_id: project.id }),
+      }),
+      {
+        metadataStore: store,
+        eventWriter: {
+          writeRawEvent: async () => undefined,
+          writeValidationResult: async () => undefined,
+        },
+      },
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      accepted: false,
+      errors: ["invalid write key"],
+    });
+  });
+
+  it("validates metadata-backed event definitions before persistence", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: hashSdkWriteKey("expected_write_key"),
+    });
+    const definition = await store.createEventDefinition({
+      projectId: project.id,
+      name: "photo_shared",
+      displayName: "图片分享",
+      description: "用户分享图片",
+      triggerTiming: "分享成功后",
+      module: "share",
+      platforms: ["web"],
+      status: "accepted",
+      requiredProperties: [
+        {
+          name: "channel",
+          type: "string",
+          required: true,
+          description: "分享渠道",
+          exampleValue: "wechat",
+        },
+      ],
+    });
+    const validationResults: unknown[] = [];
+
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "x-trackinghub-write-key": "expected_write_key" },
+        body: JSON.stringify({
+          ...payload,
+          project_id: project.id,
+          event_name: "photo_shared",
+          properties: { channel: "wechat" },
+        }),
+      }),
+      {
+        metadataStore: store,
+        eventWriter: {
+          writeRawEvent: async () => undefined,
+          writeValidationResult: async (result) => {
+            validationResults.push(result);
+          },
+        },
+        createEventId: () => "event_456",
+        now: () => new Date("2026-05-10T07:31:00.000Z"),
+      },
+    );
+
+    expect(response.status).toBe(202);
+    expect(validationResults).toEqual([
+      {
+        id: "validation_event_456",
+        project_id: project.id,
+        event_definition_id: definition.id,
+        event_name: "photo_shared",
+        environment: "prod",
+        source: "web",
+        status: "valid",
+        errors: [],
+        sample_event_id: "event_456",
+        observed_at: "2026-05-10T07:31:00.000Z",
+      },
+    ]);
+  });
+
+  it("synchronously records metadata-backed validation results for governance", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: hashSdkWriteKey("expected_write_key"),
+    });
+    const definition = await store.createEventDefinition({
+      projectId: project.id,
+      name: "photo_shared",
+      displayName: "图片分享",
+      description: "用户分享图片",
+      triggerTiming: "分享成功后",
+      module: "share",
+      platforms: ["web"],
+      status: "accepted",
+      requiredProperties: [
+        {
+          name: "channel",
+          type: "string",
+          required: true,
+          description: "分享渠道",
+          exampleValue: "wechat",
+        },
+      ],
+    });
+
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "x-trackinghub-write-key": "expected_write_key" },
+        body: JSON.stringify({
+          ...payload,
+          project_id: project.id,
+          event_name: "photo_shared",
+          properties: {},
+        }),
+      }),
+      {
+        metadataStore: store,
+        eventWriter: {
+          writeRawEvent: async () => undefined,
+          writeValidationResult: async () => undefined,
+        },
+        createEventId: () => "event_invalid",
+        now: () => new Date("2026-05-10T07:33:00.000Z"),
+      },
+    );
+
+    const governance = await store.listEventDefinitions();
+
+    expect(response.status).toBe(202);
+    expect(governance.validationResults[0]).toMatchObject({
+      eventDefinitionId: definition.id,
+      eventName: "photo_shared",
+      status: "invalid",
+      errors: ["channel is required"],
+      sampleEventId: "event_invalid",
+      observedAt: "2026-05-10T07:33:00.000Z",
+    });
   });
 
   it("returns a persistence error when raw event storage fails", async () => {

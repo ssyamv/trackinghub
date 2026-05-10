@@ -61,6 +61,16 @@ export type EventProperty = {
   example: string;
 };
 
+export type EventSampleStatus = {
+  eventName: string;
+  environment: string;
+  source: string;
+  status: "valid" | "invalid" | "unknown_event";
+  errors: string[];
+  sampleEventId: string;
+  observedAt: string;
+};
+
 export type FeaturedEventDetail = {
   eventName: string;
   displayName: string;
@@ -68,6 +78,7 @@ export type FeaturedEventDetail = {
   triggerTiming: string;
   platforms: string[];
   requiredProperties: EventProperty[];
+  recentSamples?: EventSampleStatus[];
 };
 
 export type GovernanceAcceptanceCheck = {

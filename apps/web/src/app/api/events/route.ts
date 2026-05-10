@@ -3,12 +3,21 @@ import {
   createEventWriterFromEnv,
   type EventWriter,
 } from "../../../lib/tracking/event-writer";
-import { validateEventSchema } from "../../../lib/tracking/schema-validation";
+import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
+import type { MetadataStore } from "@/lib/metadata/metadata-store";
+import { hashSdkWriteKey } from "@/lib/metadata/metadata-store";
+import { getPostgresConnectionString } from "@/lib/metadata/postgres";
+import {
+  eventDefinitionToSchema,
+  validateEventSchema,
+  type EventSchema,
+} from "../../../lib/tracking/schema-validation";
 
 export const runtime = "nodejs";
 
 type EventPostDependencies = {
   eventWriter?: EventWriter;
+  metadataStore?: MetadataStore | null;
   createEventId?: () => string;
   now?: () => Date;
 };
@@ -21,6 +30,12 @@ export async function handleEventPost(
 ) {
   let payload: unknown;
   const eventWriter = dependencies.eventWriter ?? defaultEventWriter;
+  const metadataStore =
+    dependencies.metadataStore === undefined
+      ? getPostgresConnectionString()
+        ? defaultMetadataStore
+        : null
+      : dependencies.metadataStore;
   const createEventId =
     dependencies.createEventId ?? (() => crypto.randomUUID());
   const now = dependencies.now ?? (() => new Date());
@@ -51,16 +66,72 @@ export async function handleEventPost(
 
   const eventId = createEventId();
   const receivedAt = now().toISOString();
+  let runtimeSchema: EventSchema | null | undefined;
+
+  if (metadataStore) {
+    const writeKey = request.headers.get("x-trackinghub-write-key");
+
+    if (!writeKey) {
+      return Response.json(
+        {
+          accepted: false,
+          errors: ["invalid write key"],
+        },
+        { status: 401 },
+      );
+    }
+
+    try {
+      const verification = await metadataStore.verifySdkWriteKey({
+        projectId: result.value.project_id,
+        environment: result.value.environment,
+        source: result.value.source,
+        keyHash: hashSdkWriteKey(writeKey),
+      });
+
+      if (!verification.valid) {
+        return Response.json(
+          {
+            accepted: false,
+            errors: ["invalid write key"],
+          },
+          { status: 401 },
+        );
+      }
+
+      const definition = await metadataStore.findValidatableEventDefinition({
+        projectId: result.value.project_id,
+        eventName: result.value.event_name,
+        source: result.value.source,
+      });
+
+      runtimeSchema = definition ? eventDefinitionToSchema(definition) : null;
+    } catch {
+      return Response.json(
+        {
+          accepted: false,
+          errors: ["event metadata is unavailable"],
+        },
+        { status: 503 },
+      );
+    }
+  }
 
   try {
+    const validationResult = validateEventSchema(
+      result.value,
+      eventId,
+      receivedAt,
+      runtimeSchema,
+    );
+
     await eventWriter.writeRawEvent({
       ...result.value,
       event_id: eventId,
       received_at: receivedAt,
     });
-    await eventWriter.writeValidationResult(
-      validateEventSchema(result.value, eventId, receivedAt),
-    );
+    await eventWriter.writeValidationResult(validationResult);
+    await metadataStore?.recordValidationResult(validationResult);
   } catch {
     return Response.json(
       {

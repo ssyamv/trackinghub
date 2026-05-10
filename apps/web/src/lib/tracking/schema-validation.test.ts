@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateEventSchema } from "./schema-validation";
+import { eventDefinitionToSchema, validateEventSchema } from "./schema-validation";
 import type { TrackingEnvelope } from "./envelope";
 
 const payload: TrackingEnvelope = {
@@ -66,5 +66,49 @@ describe("validateEventSchema", () => {
     expect(result.status).toBe("unknown_event");
     expect(result.errors).toEqual(["event definition not found"]);
     expect(result.event_definition_id).toBeNull();
+  });
+
+  it("validates events with a schema converted from metadata definitions", () => {
+    const metadataSchema = eventDefinitionToSchema({
+      id: "event_definition_1",
+      projectId: "project_x",
+      projectName: "Magic Frame",
+      name: "photo_shared",
+      displayName: "图片分享",
+      description: "用户分享图片",
+      triggerTiming: "分享成功后",
+      module: "share",
+      platforms: ["web"],
+      status: "accepted",
+      requiredProperties: [
+        {
+          name: "channel",
+          type: "string",
+          required: true,
+          description: "分享渠道",
+          exampleValue: "wechat",
+        },
+      ],
+      optionalProperties: [],
+      lastSeenAt: null,
+    });
+
+    expect(
+      validateEventSchema(
+        {
+          ...payload,
+          event_name: "photo_shared",
+          properties: { channel: "wechat" },
+        },
+        "event_456",
+        "2026-05-10T07:31:00.000Z",
+        metadataSchema,
+      ),
+    ).toMatchObject({
+      event_definition_id: "event_definition_1",
+      event_name: "photo_shared",
+      status: "valid",
+      errors: [],
+    });
   });
 });

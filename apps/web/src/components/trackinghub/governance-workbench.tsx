@@ -155,6 +155,44 @@ export function GovernanceWorkbench({
                 ))}
               </div>
             </div>
+            {eventDetail.recentSamples &&
+            eventDetail.recentSamples.length > 0 ? (
+              <div>
+                <div className="mb-3 text-sm font-semibold">最近样本</div>
+                <div className="space-y-2">
+                  {eventDetail.recentSamples.map((sample) => (
+                    <div
+                      className="rounded-lg border border-border bg-background p-3"
+                      key={sample.sampleEventId}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge
+                          tone={
+                            sample.status === "valid" ? "success" : "danger"
+                          }
+                        >
+                          {sample.status}
+                        </StatusBadge>
+                        <span className="break-all font-mono text-xs text-muted-foreground">
+                          {sample.eventName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {sample.source} / {sample.environment}
+                        </span>
+                      </div>
+                      <div className="mt-2 font-mono text-xs text-muted-foreground">
+                        {sample.sampleEventId} · {sample.observedAt}
+                      </div>
+                      {sample.errors.length > 0 ? (
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {sample.errors.join("；")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

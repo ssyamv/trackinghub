@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export type PlatformSource = "web" | "flutter";
 export type ProjectEnvironmentName = "dev" | "staging" | "prod";
 export type SdkKeyStatus = "active" | "rotating" | "disabled";
@@ -19,6 +21,10 @@ export class MetadataStoreError extends Error {
     super(code);
     this.name = "MetadataStoreError";
   }
+}
+
+export function hashSdkWriteKey(writeKey: string) {
+  return createHash("sha256").update(writeKey).digest("hex");
 }
 
 export type ProjectRecord = {
@@ -52,6 +58,17 @@ export type SdkKeyRecord = {
   keyHash?: string;
 };
 
+export type SdkWriteKeyVerificationInput = {
+  projectId: string;
+  environment: ProjectEnvironmentName;
+  source: PlatformSource;
+  keyHash: string;
+};
+
+export type SdkWriteKeyVerification = {
+  valid: boolean;
+};
+
 export type EventPropertyRecord = {
   name: string;
   type: "string" | "number" | "boolean" | "object" | "array";
@@ -83,6 +100,40 @@ export type EventAcceptanceRecord = {
   note: string;
 };
 
+export type EventValidationStatus = "valid" | "invalid" | "unknown_event";
+
+export type EventValidationResultInput = {
+  id: string;
+  project_id: string;
+  event_definition_id: string | null;
+  event_name: string;
+  environment: ProjectEnvironmentName;
+  source: PlatformSource;
+  status: EventValidationStatus;
+  errors: string[];
+  sample_event_id: string;
+  observed_at: string;
+};
+
+export type EventValidationResultRecord = {
+  id: string;
+  projectId: string;
+  eventDefinitionId: string | null;
+  eventName: string;
+  environment: ProjectEnvironmentName;
+  source: PlatformSource;
+  status: EventValidationStatus;
+  errors: string[];
+  sampleEventId: string;
+  observedAt: string;
+};
+
+export type ValidatableEventDefinitionInput = {
+  projectId: string;
+  eventName: string;
+  source: PlatformSource;
+};
+
 export type ProjectsOverview = {
   projects: ProjectRecord[];
   environments: ProjectEnvironmentRecord[];
@@ -91,6 +142,7 @@ export type ProjectsOverview = {
 
 export type GovernanceOverview = {
   definitions: EventDefinitionRecord[];
+  validationResults?: EventValidationResultRecord[];
 };
 
 export type MetadataStore = {
@@ -114,6 +166,13 @@ export type MetadataStore = {
     sdkKeyId: string,
     status: SdkKeyStatus,
   ): Promise<SdkKeyRecord>;
+  verifySdkWriteKey(
+    input: SdkWriteKeyVerificationInput,
+  ): Promise<SdkWriteKeyVerification>;
+  findValidatableEventDefinition(
+    input: ValidatableEventDefinitionInput,
+  ): Promise<EventDefinitionRecord | null>;
+  recordValidationResult(input: EventValidationResultInput): Promise<void>;
   listEventDefinitions(): Promise<GovernanceOverview>;
   createEventDefinition(
     input: Omit<
@@ -185,11 +244,38 @@ function cloneEventDefinition(
   };
 }
 
+function toValidationResultRecord(
+  input: EventValidationResultInput,
+): EventValidationResultRecord {
+  return {
+    id: input.id,
+    projectId: input.project_id,
+    eventDefinitionId: input.event_definition_id,
+    eventName: input.event_name,
+    environment: input.environment,
+    source: input.source,
+    status: input.status,
+    errors: [...input.errors],
+    sampleEventId: input.sample_event_id,
+    observedAt: input.observed_at,
+  };
+}
+
+function cloneValidationResult(
+  result: EventValidationResultRecord,
+): EventValidationResultRecord {
+  return {
+    ...result,
+    errors: [...result.errors],
+  };
+}
+
 export function createMemoryMetadataStore(): MetadataStore {
   const projects: ProjectRecord[] = [];
   const environments: ProjectEnvironmentRecord[] = [];
   const sdkKeys: SdkKeyRecord[] = [];
   const definitions: EventDefinitionRecord[] = [];
+  const validationResults: EventValidationResultRecord[] = [];
   const acceptanceRecords: EventAcceptanceRecord[] = [];
   let projectSequence = 1;
   let environmentSequence = 1;
@@ -302,10 +388,78 @@ export function createMemoryMetadataStore(): MetadataStore {
       return cloneSdkKey(sdkKeys[sdkKeyIndex]);
     },
 
-    async listEventDefinitions() {
+    async verifySdkWriteKey(input) {
+      const environment = environments.find(
+        (item) =>
+          item.projectId === input.projectId &&
+          item.name === input.environment &&
+          item.enabled,
+      );
+
+      if (!environment) {
+        return { valid: false };
+      }
+
       return {
-        definitions: definitions.map(cloneEventDefinition),
+        valid: sdkKeys.some(
+          (item) =>
+            item.projectId === input.projectId &&
+            item.environment === input.environment &&
+            item.source === input.source &&
+            item.status === "active" &&
+            item.keyHash === input.keyHash,
+        ),
       };
+    },
+
+    async findValidatableEventDefinition(input) {
+      const definition = definitions.find(
+        (item) =>
+          item.projectId === input.projectId &&
+          item.name === input.eventName &&
+          item.platforms.includes(input.source) &&
+          ["ready", "released", "accepted"].includes(item.status),
+      );
+
+      return definition ? cloneEventDefinition(definition) : null;
+    },
+
+    async listEventDefinitions() {
+      const definitionsWithLastSeen = definitions.map((definition) => {
+        const definitionResults = validationResults.filter(
+          (result) => result.eventDefinitionId === definition.id,
+        );
+        const lastSeenAt = definitionResults.reduce<string | null>(
+          (latest, result) =>
+            !latest || result.observedAt > latest ? result.observedAt : latest,
+          null,
+        );
+
+        return cloneEventDefinition({
+          ...definition,
+          lastSeenAt,
+        });
+      });
+
+      return {
+        definitions: definitionsWithLastSeen,
+        validationResults: validationResults
+          .toSorted((left, right) => right.observedAt.localeCompare(left.observedAt))
+          .map(cloneValidationResult),
+      };
+    },
+
+    async recordValidationResult(input) {
+      const existingIndex = validationResults.findIndex(
+        (result) => result.id === input.id,
+      );
+      const result = toValidationResultRecord(input);
+
+      if (existingIndex >= 0) {
+        validationResults[existingIndex] = result;
+      } else {
+        validationResults.push(result);
+      }
     },
 
     async createEventDefinition(input) {

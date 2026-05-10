@@ -10,6 +10,13 @@ const localBootstrap = readFileSync(
   path.resolve(process.cwd(), "../../db/postgres/002_local_bootstrap_admin.sql"),
   "utf8",
 );
+const validationResultIdMigration = readFileSync(
+  path.resolve(
+    process.cwd(),
+    "../../db/postgres/003_event_validation_result_text_ids.sql",
+  ),
+  "utf8",
+);
 
 describe("metadata postgres schema", () => {
   it("defines local auth tables and role checks", () => {
@@ -30,6 +37,16 @@ describe("metadata postgres schema", () => {
   it("supports governance acceptance and ready event definitions", () => {
     expect(schema).toContain("CREATE TABLE event_acceptance_records");
     expect(schema).toContain("status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'released', 'accepted', 'deprecated'))");
+    expect(schema).toContain("id TEXT PRIMARY KEY");
+  });
+
+  it("documents the validation result id migration for existing databases", () => {
+    expect(validationResultIdMigration).toContain(
+      "ALTER TABLE event_validation_results",
+    );
+    expect(validationResultIdMigration).toContain(
+      "ALTER COLUMN id TYPE TEXT USING id::text",
+    );
   });
 
   it("provides a local bootstrap path for fresh databases", () => {

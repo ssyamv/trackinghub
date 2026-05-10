@@ -72,6 +72,156 @@ describe("metadata store contract", () => {
     );
   });
 
+  it("finds only validatable event definitions for ingestion schema checks", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web", "flutter"],
+    });
+    await store.createEventDefinition({
+      projectId: project.id,
+      name: "photo_shared",
+      displayName: "图片分享",
+      description: "用户分享图片",
+      triggerTiming: "分享成功后",
+      module: "share",
+      platforms: ["web"],
+      status: "accepted",
+      requiredProperties: [
+        {
+          name: "channel",
+          type: "string",
+          required: true,
+          description: "分享渠道",
+          exampleValue: "wechat",
+        },
+      ],
+    });
+    await store.createEventDefinition({
+      projectId: project.id,
+      name: "draft_event",
+      displayName: "草稿事件",
+      description: "尚未验收",
+      triggerTiming: "测试",
+      module: "draft",
+      platforms: ["web"],
+      status: "draft",
+      requiredProperties: [],
+    });
+
+    await expect(
+      store.findValidatableEventDefinition({
+        projectId: project.id,
+        eventName: "photo_shared",
+        source: "web",
+      }),
+    ).resolves.toMatchObject({
+      name: "photo_shared",
+      requiredProperties: [{ name: "channel" }],
+    });
+    await expect(
+      store.findValidatableEventDefinition({
+        projectId: project.id,
+        eventName: "photo_shared",
+        source: "flutter",
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      store.findValidatableEventDefinition({
+        projectId: project.id,
+        eventName: "draft_event",
+        source: "web",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("records validation results and exposes recent samples for governance", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web", "flutter"],
+    });
+    const definition = await store.createEventDefinition({
+      projectId: project.id,
+      name: "photo_shared",
+      displayName: "图片分享",
+      description: "用户分享图片",
+      triggerTiming: "分享成功后",
+      module: "share",
+      platforms: ["web"],
+      status: "accepted",
+      requiredProperties: [
+        {
+          name: "channel",
+          type: "string",
+          required: true,
+          description: "分享渠道",
+          exampleValue: "wechat",
+        },
+      ],
+    });
+
+    await store.recordValidationResult({
+      id: "validation_event_valid",
+      project_id: project.id,
+      event_definition_id: definition.id,
+      event_name: "photo_shared",
+      environment: "prod",
+      source: "web",
+      status: "valid",
+      errors: [],
+      sample_event_id: "event_valid",
+      observed_at: "2026-05-10T07:30:00.000Z",
+    });
+    await store.recordValidationResult({
+      id: "validation_event_invalid",
+      project_id: project.id,
+      event_definition_id: definition.id,
+      event_name: "photo_shared",
+      environment: "prod",
+      source: "web",
+      status: "invalid",
+      errors: ["channel is required"],
+      sample_event_id: "event_invalid",
+      observed_at: "2026-05-10T07:31:00.000Z",
+    });
+    await store.recordValidationResult({
+      id: "validation_event_unknown",
+      project_id: project.id,
+      event_definition_id: null,
+      event_name: "unplanned_event",
+      environment: "prod",
+      source: "flutter",
+      status: "unknown_event",
+      errors: ["event definition not found"],
+      sample_event_id: "event_unknown",
+      observed_at: "2026-05-10T07:32:00.000Z",
+    });
+
+    const governance = await store.listEventDefinitions();
+
+    expect(governance.definitions[0].lastSeenAt).toBe(
+      "2026-05-10T07:31:00.000Z",
+    );
+    expect(governance.validationResults.map((result) => result.status)).toEqual([
+      "unknown_event",
+      "invalid",
+      "valid",
+    ]);
+    expect(governance.validationResults[1]).toMatchObject({
+      eventDefinitionId: definition.id,
+      eventName: "photo_shared",
+      errors: ["channel is required"],
+      sampleEventId: "event_invalid",
+    });
+  });
+
   it("does not expose internal project references from list results", async () => {
     const store = createMemoryMetadataStore();
     await store.createProject({
@@ -121,6 +271,59 @@ describe("metadata store contract", () => {
 
     expect(updatedSdkKey.status).toBe("disabled");
     expect(overview.sdkKeys[0].status).toBe("disabled");
+  });
+
+  it("verifies active SDK write keys against project, environment, and source", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web", "flutter"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: "hash_live_key",
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "flutter",
+      maskedKey: "write_key_app_****38",
+      status: "disabled",
+      keyHash: "hash_disabled_key",
+    });
+
+    await expect(
+      store.verifySdkWriteKey({
+        projectId: project.id,
+        environment: "prod",
+        source: "web",
+        keyHash: "hash_live_key",
+      }),
+    ).resolves.toEqual({ valid: true });
+    await expect(
+      store.verifySdkWriteKey({
+        projectId: project.id,
+        environment: "prod",
+        source: "flutter",
+        keyHash: "hash_disabled_key",
+      }),
+    ).resolves.toEqual({ valid: false });
+    await expect(
+      store.verifySdkWriteKey({
+        projectId: project.id,
+        environment: "prod",
+        source: "flutter",
+        keyHash: "hash_live_key",
+      }),
+    ).resolves.toEqual({ valid: false });
   });
 
   it("does not expose internal event definition references from list results", async () => {

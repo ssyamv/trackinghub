@@ -138,7 +138,7 @@ CREATE TABLE event_property_definitions (
 );
 
 CREATE TABLE event_validation_results (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id TEXT PRIMARY KEY,
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   event_definition_id UUID REFERENCES event_definitions(id) ON DELETE SET NULL,
   event_name TEXT NOT NULL,

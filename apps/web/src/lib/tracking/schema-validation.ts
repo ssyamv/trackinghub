@@ -1,4 +1,8 @@
 import type { TrackingEnvelope } from "./envelope";
+import type {
+  EventDefinitionRecord,
+  EventPropertyRecord,
+} from "@/lib/metadata/metadata-store";
 
 export type ValidationStatus = "valid" | "invalid" | "unknown_event";
 
@@ -17,10 +21,10 @@ export type PersistedValidationResult = {
 
 type PropertySchema = {
   name: string;
-  type: "string" | "number" | "boolean";
+  type: EventPropertyRecord["type"];
 };
 
-type EventSchema = {
+export type EventSchema = {
   eventDefinitionId: string;
   requiredProperties: PropertySchema[];
 };
@@ -66,15 +70,36 @@ function typeOfProperty(value: unknown) {
     return "boolean";
   }
 
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return "object";
+  }
+
   return "unknown";
+}
+
+export function eventDefinitionToSchema(
+  definition: EventDefinitionRecord,
+): EventSchema {
+  return {
+    eventDefinitionId: definition.id,
+    requiredProperties: definition.requiredProperties.map((property) => ({
+      name: property.name,
+      type: property.type,
+    })),
+  };
 }
 
 export function validateEventSchema(
   event: TrackingEnvelope,
   sampleEventId: string,
   observedAt: string,
+  runtimeSchema?: EventSchema | null,
 ): PersistedValidationResult {
-  const schema = EVENT_SCHEMAS[event.event_name];
+  const schema = runtimeSchema ?? EVENT_SCHEMAS[event.event_name];
 
   if (!schema) {
     return {

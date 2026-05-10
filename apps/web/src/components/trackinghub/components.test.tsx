@@ -143,7 +143,20 @@ describe("TrackingHub dashboard components", () => {
     const html = renderToStaticMarkup(
       <GovernanceWorkbench
         acceptanceChecks={governanceAcceptanceChecks}
-        eventDetail={featuredEventDetail}
+        eventDetail={{
+          ...featuredEventDetail,
+          recentSamples: [
+            {
+              eventName: "photo_shared",
+              environment: "prod",
+              source: "Web",
+              status: "invalid",
+              errors: ["channel is required"],
+              sampleEventId: "event_invalid",
+              observedAt: "2026-05-10T07:31:00.000Z",
+            },
+          ],
+        }}
         events={eventDictionaryItems}
         summaryCards={governanceSummaryCards}
       />,
@@ -155,6 +168,8 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("pay_button_click");
     expect(html).toContain("product_id");
     expect(html).toContain("Schema 不一致");
+    expect(html).toContain("最近样本");
+    expect(html).toContain("channel is required");
     expect(html).toContain('data-slot="table"');
   });
 

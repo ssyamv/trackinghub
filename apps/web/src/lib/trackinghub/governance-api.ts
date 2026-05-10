@@ -3,6 +3,7 @@ import type { EditableEventDefinition } from "@/lib/trackinghub/event-dictionary
 import type {
   EventDefinitionStatus,
   EventPropertyRecord,
+  EventValidationResultRecord,
   GovernanceOverview,
   PlatformSource,
 } from "@/lib/metadata/metadata-store";
@@ -55,10 +56,26 @@ function detailPropertyType(type: EventPropertyRecord["type"]) {
   return type === "number" || type === "boolean" ? type : "string";
 }
 
+function validationErrorDetail(result: EventValidationResultRecord) {
+  return result.errors.length > 0 ? result.errors.join("；") : "样本通过";
+}
+
+function validationStatusTone(status: EventValidationResultRecord["status"]) {
+  return status === "valid" ? ("success" as const) : ("danger" as const);
+}
+
 export function mapGovernanceOverviewToWorkbench(
   overview: GovernanceOverview,
 ): GovernanceWorkbenchData {
   const first = overview.definitions[0];
+  const validationResults = [...(overview.validationResults ?? [])].sort(
+    (left, right) => right.observedAt.localeCompare(left.observedAt),
+  );
+  const schemaAnomalies = validationResults.filter(
+    (result) => result.status !== "valid",
+  );
+  const latest = validationResults[0];
+  const firstAnomaly = schemaAnomalies[0];
 
   return {
     summaryCards: [
@@ -78,14 +95,18 @@ export function mapGovernanceOverviewToWorkbench(
       },
       {
         label: "Schema 异常",
-        value: "0",
-        detail: "下一阶段接入验证结果",
+        value: String(schemaAnomalies.length),
+        detail: firstAnomaly
+          ? `${firstAnomaly.eventName}：${validationErrorDetail(firstAnomaly)}`
+          : "最近样本均通过",
         tone: "red",
       },
       {
         label: "最近接收",
-        value: first?.lastSeenAt ?? "暂无",
-        detail: first?.name ?? "暂无事件",
+        value: latest?.observedAt ?? first?.lastSeenAt ?? "暂无",
+        detail: latest
+          ? `${latest.eventName} / ${latest.environment}`
+          : first?.name ?? "暂无事件",
         tone: "purple",
       },
     ],
@@ -114,6 +135,15 @@ export function mapGovernanceOverviewToWorkbench(
             description: property.description,
             example: String(property.exampleValue ?? ""),
           })),
+          recentSamples: validationResults.slice(0, 5).map((result) => ({
+            eventName: result.eventName,
+            environment: result.environment,
+            source: sourceLabel(result.source),
+            status: result.status,
+            errors: result.errors,
+            sampleEventId: result.sampleEventId,
+            observedAt: result.observedAt,
+          })),
         }
       : {
           eventName: "暂无事件",
@@ -122,8 +152,21 @@ export function mapGovernanceOverviewToWorkbench(
           triggerTiming: "创建事件定义后展示触发时机。",
           platforms: [],
           requiredProperties: [],
+          recentSamples: validationResults.slice(0, 5).map((result) => ({
+            eventName: result.eventName,
+            environment: result.environment,
+            source: sourceLabel(result.source),
+            status: result.status,
+            errors: result.errors,
+            sampleEventId: result.sampleEventId,
+            observedAt: result.observedAt,
+          })),
         },
-    acceptanceChecks: [],
+    acceptanceChecks: schemaAnomalies.map((result) => ({
+      label: `${result.eventName} / ${result.status}`,
+      detail: validationErrorDetail(result),
+      tone: validationStatusTone(result.status),
+    })),
     editableDefinitions: overview.definitions.map((definition) => ({
       id: definition.id,
       eventName: definition.name,

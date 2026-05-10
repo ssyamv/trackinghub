@@ -47,6 +47,12 @@ psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/001_metadata_schema.sql
 psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/002_local_bootstrap_admin.sql
 ```
 
+旧库如果已经创建过 `event_validation_results`，追加执行一次验证结果 ID 迁移：
+
+```bash
+psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/003_event_validation_result_text_ids.sql
+```
+
 本地 bootstrap 管理员：`admin@example.com` / `trackinghub-admin`。共享环境或生产环境不要使用这个默认账号。
 
 ## 说明

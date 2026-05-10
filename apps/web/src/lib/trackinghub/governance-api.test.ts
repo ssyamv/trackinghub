@@ -86,4 +86,96 @@ describe("governance api mapper", () => {
       "deprecated",
     ]);
   });
+
+  it("maps real validation results into anomaly summary, error checks, and sample statuses", () => {
+    const result = mapGovernanceOverviewToWorkbench({
+      definitions: [
+        {
+          id: "event_1",
+          projectId: "project_1",
+          projectName: "Magic Frame",
+          name: "photo_shared",
+          displayName: "图片分享",
+          description: "用户分享图片",
+          triggerTiming: "分享成功后",
+          module: "share",
+          platforms: ["web"],
+          status: "accepted",
+          requiredProperties: [],
+          optionalProperties: [],
+          lastSeenAt: "2026-05-10T07:31:00.000Z",
+        },
+      ],
+      validationResults: [
+        {
+          id: "validation_event_unknown",
+          projectId: "project_1",
+          eventDefinitionId: null,
+          eventName: "unplanned_event",
+          environment: "prod",
+          source: "flutter",
+          status: "unknown_event",
+          errors: ["event definition not found"],
+          sampleEventId: "event_unknown",
+          observedAt: "2026-05-10T07:32:00.000Z",
+        },
+        {
+          id: "validation_event_invalid",
+          projectId: "project_1",
+          eventDefinitionId: "event_1",
+          eventName: "photo_shared",
+          environment: "prod",
+          source: "web",
+          status: "invalid",
+          errors: ["channel is required"],
+          sampleEventId: "event_invalid",
+          observedAt: "2026-05-10T07:31:00.000Z",
+        },
+        {
+          id: "validation_event_valid",
+          projectId: "project_1",
+          eventDefinitionId: "event_1",
+          eventName: "photo_shared",
+          environment: "prod",
+          source: "web",
+          status: "valid",
+          errors: [],
+          sampleEventId: "event_valid",
+          observedAt: "2026-05-10T07:30:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.summaryCards).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: "Schema 异常",
+          value: "2",
+          detail: "unplanned_event：event definition not found",
+        }),
+        expect.objectContaining({
+          label: "最近接收",
+          value: "2026-05-10T07:32:00.000Z",
+          detail: "unplanned_event / prod",
+        }),
+      ]),
+    );
+    expect(result.acceptanceChecks).toEqual([
+      {
+        label: "unplanned_event / unknown_event",
+        detail: "event definition not found",
+        tone: "danger",
+      },
+      {
+        label: "photo_shared / invalid",
+        detail: "channel is required",
+        tone: "danger",
+      },
+    ]);
+    expect(result.eventDetail.recentSamples?.map((sample) => sample.status)).toEqual([
+      "unknown_event",
+      "invalid",
+      "valid",
+    ]);
+  });
 });

@@ -6,6 +6,7 @@ import {
   type EventDefinitionRecord,
   type EventDefinitionStatus,
   type EventPropertyRecord,
+  type EventValidationResultRecord,
   type MetadataStore,
   type PlatformSource,
   type ProjectEnvironmentName,
@@ -67,6 +68,19 @@ type EventPropertyRow = QueryResultRow & {
   required: boolean;
   description: string;
   example_value: unknown;
+};
+
+type EventValidationResultRow = QueryResultRow & {
+  id: string;
+  project_id: string;
+  event_definition_id: string | null;
+  event_name: string;
+  environment: ProjectEnvironmentName;
+  source: PlatformSource;
+  status: EventValidationResultRecord["status"];
+  errors: unknown;
+  sample_event_id: string | null;
+  observed_at: Date | string;
 };
 
 type ProjectLookupRow = QueryResultRow & {
@@ -153,6 +167,30 @@ export function toEventDefinitionRecord(
     requiredProperties: properties.filter((property) => property.required),
     optionalProperties: properties.filter((property) => !property.required),
     lastSeenAt: toIsoString(row.last_seen_at),
+  };
+}
+
+export function toEventValidationResultRecord(
+  row: EventValidationResultRow,
+): EventValidationResultRecord {
+  const errors = Array.isArray(row.errors)
+    ? row.errors.map((error) => String(error))
+    : [];
+
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    eventDefinitionId: row.event_definition_id,
+    eventName: row.event_name,
+    environment: row.environment,
+    source: row.source,
+    status: row.status,
+    errors,
+    sampleEventId: row.sample_event_id ?? "",
+    observedAt:
+      row.observed_at instanceof Date
+        ? row.observed_at.toISOString()
+        : row.observed_at,
   };
 }
 
@@ -435,8 +473,99 @@ export const defaultMetadataStore: MetadataStore = {
     return toSdkKeyRecord(result.rows[0]);
   },
 
+  async verifySdkWriteKey(input) {
+    const result = await queryPostgres<QueryResultRow & { id: string }>(
+      `SELECT sdk_keys.id
+         FROM sdk_keys
+         JOIN project_environments
+           ON project_environments.id = sdk_keys.project_environment_id
+        WHERE project_environments.project_id = $1
+          AND project_environments.name = $2
+          AND project_environments.enabled = true
+          AND sdk_keys.source = $3
+          AND sdk_keys.key_hash = $4
+          AND sdk_keys.status = 'active'
+        LIMIT 1`,
+      [input.projectId, input.environment, input.source, input.keyHash],
+    );
+
+    return { valid: result.rows.length > 0 };
+  },
+
+  async findValidatableEventDefinition(input) {
+    const result = await queryPostgres<EventDefinitionRow>(
+      `SELECT event_definitions.id,
+              event_definitions.project_id,
+              projects.name AS project_name,
+              event_definitions.name,
+              event_definitions.display_name,
+              event_definitions.description,
+              event_definitions.trigger_timing,
+              event_definitions.module,
+              event_definitions.platforms,
+              event_definitions.status,
+              max(event_validation_results.observed_at) AS last_seen_at
+         FROM event_definitions
+         JOIN projects ON projects.id = event_definitions.project_id
+         LEFT JOIN event_validation_results
+           ON event_validation_results.event_definition_id = event_definitions.id
+        WHERE event_definitions.project_id = $1
+          AND event_definitions.name = $2
+          AND $3 = ANY(event_definitions.platforms)
+          AND event_definitions.status IN ('ready', 'released', 'accepted')
+        GROUP BY event_definitions.id, projects.name
+        LIMIT 1`,
+      [input.projectId, input.eventName, input.source],
+    );
+    const definition = result.rows[0];
+
+    if (!definition) {
+      return null;
+    }
+
+    const properties = await queryPostgres<EventPropertyRow>(
+      `SELECT event_definition_id, name, type, required, description, example_value
+         FROM event_property_definitions
+        WHERE event_definition_id = $1
+        ORDER BY required DESC, created_at ASC, name ASC`,
+      [definition.id],
+    );
+
+    return toEventDefinitionRecord(definition, properties.rows);
+  },
+
+  async recordValidationResult(input) {
+    await queryPostgres(
+      `INSERT INTO event_validation_results
+        (id, project_id, event_definition_id, event_name, environment, source, status, errors, sample_event_id, observed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
+       ON CONFLICT (id) DO UPDATE SET
+         event_definition_id = EXCLUDED.event_definition_id,
+         event_name = EXCLUDED.event_name,
+         environment = EXCLUDED.environment,
+         source = EXCLUDED.source,
+         status = EXCLUDED.status,
+         errors = EXCLUDED.errors,
+         sample_event_id = EXCLUDED.sample_event_id,
+         observed_at = EXCLUDED.observed_at`,
+      [
+        input.id,
+        input.project_id,
+        input.event_definition_id,
+        input.event_name,
+        input.environment,
+        input.source,
+        input.status,
+        JSON.stringify(input.errors),
+        input.sample_event_id,
+        input.observed_at,
+      ],
+    );
+  },
+
   async listEventDefinitions() {
-    const definitions = await queryPostgres<EventDefinitionRow>(
+    const [definitions, validationResults] = await Promise.all([
+      queryPostgres<EventDefinitionRow>(
       `SELECT event_definitions.id,
               event_definitions.project_id,
               projects.name AS project_name,
@@ -454,10 +583,31 @@ export const defaultMetadataStore: MetadataStore = {
            ON event_validation_results.event_definition_id = event_definitions.id
         GROUP BY event_definitions.id, projects.name
         ORDER BY event_definitions.created_at DESC`,
-    );
+      ),
+      queryPostgres<EventValidationResultRow>(
+        `SELECT id,
+                project_id,
+                event_definition_id,
+                event_name,
+                environment,
+                source,
+                status,
+                errors,
+                sample_event_id,
+                observed_at
+           FROM event_validation_results
+          ORDER BY observed_at DESC
+          LIMIT 50`,
+      ),
+    ]);
 
     if (definitions.rows.length === 0) {
-      return { definitions: [] };
+      return {
+        definitions: [],
+        validationResults: validationResults.rows.map(
+          toEventValidationResultRecord,
+        ),
+      };
     }
 
     const properties = await queryPostgres<EventPropertyRow>(
@@ -476,6 +626,9 @@ export const defaultMetadataStore: MetadataStore = {
             (property) => property.event_definition_id === definition.id,
           ),
         ),
+      ),
+      validationResults: validationResults.rows.map(
+        toEventValidationResultRecord,
       ),
     };
   },
