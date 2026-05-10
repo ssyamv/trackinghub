@@ -4,9 +4,9 @@
 
 **Goal:** Build the first testable TrackingHub foundation: monorepo scaffold, Next.js admin shell, shared event contract, ingestion validation surface, Postgres schema draft, ClickHouse schema draft, Web SDK package, and Flutter SDK package.
 
-**Architecture:** Use a small npm workspace monorepo with `apps/web` as the Next.js full-stack app and `packages/web-sdk` as the browser SDK. Keep database DDL in `db/postgres` and `db/clickhouse` so model decisions are reviewable before migrations are wired to runtime. Keep the Flutter SDK as a standalone Dart package under `packages/flutter-sdk` because Flutter tooling does not participate in npm workspaces.
+**Architecture:** Use a small pnpm workspace monorepo with `apps/web` as the Next.js full-stack app and `packages/web-sdk` as the browser SDK. Keep database DDL in `db/postgres` and `db/clickhouse` so model decisions are reviewable before migrations are wired to runtime. Keep the Flutter SDK as a standalone Dart package under `packages/flutter-sdk` because Flutter tooling does not participate in the JavaScript workspace.
 
-**Tech Stack:** Next.js App Router, TypeScript, Tailwind CSS, Vitest, Postgres DDL, ClickHouse DDL, npm workspaces, Dart package layout.
+**Tech Stack:** Next.js App Router, TypeScript, Tailwind CSS, Vitest, Postgres DDL, ClickHouse DDL, pnpm workspaces, Dart package layout.
 
 ---
 
@@ -16,7 +16,8 @@ This plan implements the first foundation slice only. It does not complete authe
 
 ## File Structure
 
-- `package.json`: root workspace scripts for lint, test, build, and SDK checks.
+- `package.json`: root pnpm scripts for lint, test, build, and SDK checks.
+- `pnpm-workspace.yaml`: workspace package globs.
 - `.gitignore`: Node, Next.js, coverage, Dart, and local environment ignores.
 - `apps/web`: Next.js full-stack app with App Router, Tailwind, dashboard shell, and API route handlers.
 - `apps/web/src/app/page.tsx`: first MVP home dashboard using static seed data from the product design.
@@ -33,7 +34,7 @@ This plan implements the first foundation slice only. It does not complete authe
 
 ## Baseline Decisions
 
-- Use npm workspaces because the root repository starts empty and Next.js current defaults support npm cleanly.
+- Use pnpm workspaces to keep dependency installs faster and more disk-efficient as the monorepo grows.
 - Use `apps/web` rather than a root Next.js app so SDK packages and database artifacts live beside the app without mixing concerns.
 - Use App Router route handlers. `POST /api/events` lives at `apps/web/src/app/api/events/route.ts`.
 - Store `timestamp` as epoch milliseconds in SDK payloads and convert later in database writers.
@@ -46,6 +47,7 @@ This plan implements the first foundation slice only. It does not complete authe
 
 **Files:**
 - Create: `package.json`
+- Create: `pnpm-workspace.yaml`
 - Create: `.gitignore`
 
 - [ ] **Step 1: Create root workspace manifest**
@@ -58,21 +60,28 @@ Write `package.json`:
   "private": true,
   "version": "0.1.0",
   "description": "Internal tracking governance and product analytics platform.",
-  "workspaces": [
-    "apps/web",
-    "packages/web-sdk"
-  ],
+  "packageManager": "pnpm@10.13.1",
   "scripts": {
-    "dev": "npm --workspace apps/web run dev",
-    "build": "npm --workspace apps/web run build && npm --workspace packages/web-sdk run build",
-    "lint": "npm --workspace apps/web run lint && npm --workspace packages/web-sdk run lint",
-    "test": "npm --workspace apps/web run test && npm --workspace packages/web-sdk run test",
-    "check": "npm run lint && npm run test && npm run build"
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build && pnpm --filter @trackinghub/web-sdk build",
+    "lint": "pnpm --filter web lint && pnpm --filter @trackinghub/web-sdk lint",
+    "test": "pnpm --filter web test && pnpm --filter @trackinghub/web-sdk test",
+    "check": "pnpm run lint && pnpm run test && pnpm run build"
   }
 }
 ```
 
-- [ ] **Step 2: Create repository ignore rules**
+- [ ] **Step 2: Create pnpm workspace manifest**
+
+Write `pnpm-workspace.yaml`:
+
+```yaml
+packages:
+  - "apps/web"
+  - "packages/web-sdk"
+```
+
+- [ ] **Step 3: Create repository ignore rules**
 
 Write `.gitignore`:
 
@@ -96,9 +105,9 @@ packages/flutter-sdk/.packages
 packages/flutter-sdk/pubspec.lock
 ```
 
-- [ ] **Step 3: Verify workspace manifest parses**
+- [ ] **Step 4: Verify workspace manifest parses**
 
-Run: `npm pkg get workspaces`
+Run: `pnpm list --depth -1`
 
 Expected: output includes `apps/web` and `packages/web-sdk`.
 
@@ -122,7 +131,7 @@ Expected: output includes `apps/web` and `packages/web-sdk`.
 Run:
 
 ```bash
-npx create-next-app@latest apps/web --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --yes
+pnpm dlx create-next-app@latest apps/web --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm --yes
 ```
 
 Expected: `apps/web/package.json`, `apps/web/src/app/page.tsx`, and `apps/web/src/app/layout.tsx` exist.
@@ -132,7 +141,7 @@ Expected: `apps/web/package.json`, `apps/web/src/app/page.tsx`, and `apps/web/sr
 Run:
 
 ```bash
-npm --workspace apps/web install -D vitest @vitejs/plugin-react jsdom
+pnpm --filter web add -D vitest @vitejs/plugin-react jsdom
 ```
 
 Expected: `apps/web/package.json` contains a `vitest` dev dependency.
@@ -171,7 +180,7 @@ export default defineConfig({
 
 - [ ] **Step 6: Verify web app boots**
 
-Run: `npm --workspace apps/web run lint`
+Run: `pnpm --filter web lint`
 
 Expected: no lint errors.
 
@@ -245,7 +254,7 @@ describe("validateTrackingEnvelope", () => {
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm --workspace apps/web run test -- src/lib/tracking/envelope.test.ts`
+Run: `pnpm --filter web test -- src/lib/tracking/envelope.test.ts`
 
 Expected: FAIL because `./envelope` does not exist.
 
@@ -255,7 +264,7 @@ Implement exported types and `validateTrackingEnvelope(input: unknown)` returnin
 
 - [ ] **Step 4: Run tests and verify GREEN**
 
-Run: `npm --workspace apps/web run test -- src/lib/tracking/envelope.test.ts`
+Run: `pnpm --filter web test -- src/lib/tracking/envelope.test.ts`
 
 Expected: PASS.
 
@@ -283,7 +292,7 @@ For invalid payloads, assert status `400` and `accepted: false`.
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm --workspace apps/web run test -- src/app/api/events/route.test.ts`
+Run: `pnpm --filter web test -- src/app/api/events/route.test.ts`
 
 Expected: FAIL because the route does not exist.
 
@@ -314,7 +323,7 @@ export async function POST(request: Request) {
 
 - [ ] **Step 4: Run tests and verify GREEN**
 
-Run: `npm --workspace apps/web run test -- src/app/api/events/route.test.ts`
+Run: `pnpm --filter web test -- src/app/api/events/route.test.ts`
 
 Expected: PASS.
 
@@ -361,7 +370,7 @@ Test that `client.track("pay_button_click", { product_id: "p_123" })` sends one 
 
 - [ ] **Step 3: Run tests and verify RED**
 
-Run: `npm --workspace packages/web-sdk run test`
+Run: `pnpm --filter @trackinghub/web-sdk test`
 
 Expected: FAIL because `src/index.ts` does not exist.
 
@@ -371,7 +380,7 @@ Expose `createTrackingHubClient({ endpoint, projectId, environment, writeKey, fe
 
 - [ ] **Step 5: Run tests and verify GREEN**
 
-Run: `npm --workspace packages/web-sdk run test`
+Run: `pnpm --filter @trackinghub/web-sdk test`
 
 Expected: PASS.
 
@@ -398,7 +407,7 @@ Create `TrackingHubConfig`, `TrackingHubEvent`, and `TrackingHubClient.track(...
 
 - [ ] **Step 4: Run Dart tests if Dart is installed**
 
-Run: `dart test packages/flutter-sdk`
+Run: `cd packages/flutter-sdk && dart test`
 
 Expected: PASS when Dart SDK is available. If `dart` is unavailable, record that verification is blocked by missing local Dart tooling.
 
@@ -411,25 +420,25 @@ Expected: PASS when Dart SDK is available. If `dart` is unavailable, record that
 
 - [ ] **Step 1: Install dependencies**
 
-Run: `npm install`
+Run: `pnpm install`
 
-Expected: root lockfile is created and all npm workspaces install.
+Expected: `pnpm-lock.yaml` is created and all pnpm workspace packages install.
 
 - [ ] **Step 2: Run lint**
 
-Run: `npm run lint`
+Run: `pnpm run lint`
 
 Expected: PASS.
 
 - [ ] **Step 3: Run tests**
 
-Run: `npm run test`
+Run: `pnpm run test`
 
 Expected: PASS for web app and Web SDK.
 
 - [ ] **Step 4: Run build**
 
-Run: `npm run build`
+Run: `pnpm run build`
 
 Expected: PASS for Next.js app and Web SDK.
 
