@@ -51,7 +51,7 @@ describe("TrackingHub components", () => {
     expect(html).toContain("2.7m");
     expect(html).toContain("p95 写入延迟 1.8s");
     expect(html).toContain('data-slot="card"');
-    expect(html).toContain("bg-chart-5/20");
+    expect(html).toContain("bg-chart-4/20");
   });
 
   it("renders the shared empty page state", () => {
@@ -83,6 +83,8 @@ describe("TrackingHub dashboard components", () => {
 
     expect(html).toContain("pay_button_click");
     expect(html).toContain("Flutter 缺少国家字段");
+    expect(html).toContain("移动端待验收埋点列表");
+    expect(html).toContain("md:hidden");
   });
 
   it("allows long event names to wrap without hiding environment or status", () => {

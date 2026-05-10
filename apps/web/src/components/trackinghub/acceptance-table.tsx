@@ -30,7 +30,46 @@ export function AcceptanceTable({ items }: { items: AcceptanceItem[] }) {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
+        <div
+          aria-label="移动端待验收埋点列表"
+          className="divide-y divide-border md:hidden"
+        >
+          {items.map((item) => (
+            <div
+              className="space-y-3 p-4"
+              key={`${item.project}-${item.event}-${item.source}-${item.environment}-mobile`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-words font-mono text-sm font-semibold leading-5 text-foreground">
+                    {item.event}
+                  </p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                    {item.project}
+                  </p>
+                </div>
+                <StatusBadge className="shrink-0" tone={item.tone}>
+                  {item.status}
+                </StatusBadge>
+              </div>
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-xs font-semibold uppercase leading-4 text-muted-foreground">
+                    来源
+                  </dt>
+                  <dd className="mt-1 text-foreground">{item.source}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase leading-4 text-muted-foreground">
+                    环境
+                  </dt>
+                  <dd className="mt-1 text-foreground">{item.environment}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+        <Table className="hidden md:table">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4">事件</TableHead>

@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 export type StatusBadgeTone = "success" | "warning" | "danger" | "neutral";
 
 const toneClassName: Record<StatusBadgeTone, string> = {
-  success: "border-transparent bg-chart-2/20 text-foreground",
-  warning: "border-transparent bg-chart-4/20 text-foreground",
+  success: "border-transparent bg-chart-3/20 text-foreground",
+  warning: "border-transparent bg-chart-1/25 text-foreground",
   danger: "border-transparent bg-destructive text-destructive-foreground",
   neutral: "border-transparent bg-secondary text-secondary-foreground",
 };

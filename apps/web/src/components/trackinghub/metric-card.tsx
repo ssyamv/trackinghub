@@ -15,9 +15,9 @@ export type MetricCardProps = {
 };
 
 const toneClassName: Record<MetricCardProps["tone"], string> = {
-  blue: "bg-chart-1/20",
-  green: "bg-chart-2/20",
-  purple: "bg-chart-5/20",
+  blue: "bg-chart-2/20",
+  green: "bg-chart-3/20",
+  purple: "bg-chart-4/20",
   red: "bg-destructive/20",
 };
 
