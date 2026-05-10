@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptanceItems,
+  eventDictionaryItems,
+  featuredEventDetail,
+  governanceAcceptanceChecks,
+  governanceSummaryCards,
   navItems,
   pageShells,
   reportItems,
@@ -48,5 +52,28 @@ describe("TrackingHub sample data", () => {
       "接入",
       "验收",
     ]);
+  });
+
+  it("keeps governance workbench data ready for event dictionary and acceptance views", () => {
+    expect(governanceSummaryCards.map((item) => item.label)).toEqual([
+      "治理事件",
+      "待验收",
+      "Schema 异常",
+      "最近接收",
+    ]);
+    expect(eventDictionaryItems.map((item) => item.eventName)).toContain(
+      "pay_button_click",
+    );
+    expect(featuredEventDetail.eventName).toBe("pay_button_click");
+    expect(featuredEventDetail.requiredProperties.map((item) => item.name)).toEqual([
+      "product_id",
+      "price",
+      "currency",
+      "source_page",
+    ]);
+    expect(governanceAcceptanceChecks).toHaveLength(4);
+    expect(governanceAcceptanceChecks.some((item) => item.tone === "danger")).toBe(
+      true,
+    );
   });
 });

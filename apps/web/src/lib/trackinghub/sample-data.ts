@@ -37,6 +37,42 @@ export type PageShell = {
   sections: string[];
 };
 
+export type EventDictionaryStatus = "ready" | "needs_fix" | "accepted";
+
+export type EventDictionaryItem = {
+  eventName: string;
+  displayName: string;
+  project: string;
+  platforms: string;
+  environment: string;
+  owner: string;
+  status: string;
+  statusTone: AcceptanceTone;
+  lastSeen: string;
+};
+
+export type EventProperty = {
+  name: string;
+  type: "string" | "number" | "boolean";
+  description: string;
+  example: string;
+};
+
+export type FeaturedEventDetail = {
+  eventName: string;
+  displayName: string;
+  businessGoal: string;
+  triggerTiming: string;
+  platforms: string[];
+  requiredProperties: EventProperty[];
+};
+
+export type GovernanceAcceptanceCheck = {
+  label: string;
+  detail: string;
+  tone: AcceptanceTone;
+};
+
 export const navItems: NavItem[] = [
   { href: "/", label: "首页", description: "跨项目状态" },
   { href: "/projects", label: "项目", description: "产品与环境" },
@@ -91,6 +127,117 @@ export const timelineItems: TimelineItem[] = [
   { label: "定义", value: "19", active: true },
   { label: "接入", value: "12", active: true },
   { label: "验收", value: "7", active: false },
+];
+
+export const governanceSummaryCards: StatusCard[] = [
+  { label: "治理事件", value: "19", detail: "覆盖 4 个内部项目", tone: "blue" },
+  { label: "待验收", value: "7", detail: "3 个生产事件可确认", tone: "green" },
+  { label: "Schema 异常", value: "3", detail: "Flutter 与 Web 字段不一致", tone: "red" },
+  { label: "最近接收", value: "2 分钟前", detail: "pay_button_click / prod", tone: "purple" },
+];
+
+export const eventDictionaryItems: EventDictionaryItem[] = [
+  {
+    eventName: "pay_button_click",
+    displayName: "支付按钮点击",
+    project: "Magic Frame",
+    platforms: "Web + Flutter",
+    environment: "staging + prod",
+    owner: "产品增长",
+    status: "待修复",
+    statusTone: "warning",
+    lastSeen: "2 分钟前",
+  },
+  {
+    eventName: "campaign_card_view",
+    displayName: "活动卡片曝光",
+    project: "Homture",
+    platforms: "Web",
+    environment: "prod",
+    owner: "运营",
+    status: "可验收",
+    statusTone: "success",
+    lastSeen: "8 分钟前",
+  },
+  {
+    eventName: "subscription_success",
+    displayName: "订阅成功",
+    project: "Magic Frame",
+    platforms: "Flutter",
+    environment: "prod",
+    owner: "商业化",
+    status: "Schema 不一致",
+    statusTone: "danger",
+    lastSeen: "23 分钟前",
+  },
+  {
+    eventName: "onboarding_finish",
+    displayName: "新手引导完成",
+    project: "Local Drop",
+    platforms: "Web + Flutter",
+    environment: "staging",
+    owner: "产品体验",
+    status: "已验收",
+    statusTone: "success",
+    lastSeen: "1 小时前",
+  },
+];
+
+export const featuredEventDetail: FeaturedEventDetail = {
+  eventName: "pay_button_click",
+  displayName: "支付按钮点击",
+  businessGoal: "评估商品详情页到支付链路的转化质量，并按渠道、版本和国家拆解流失。",
+  triggerTiming: "用户在商品详情页或活动落地页点击支付主按钮时触发。",
+  platforms: ["Web", "Flutter"],
+  requiredProperties: [
+    {
+      name: "product_id",
+      type: "string",
+      description: "被点击支付按钮对应的商品标识。",
+      example: "p_123",
+    },
+    {
+      name: "price",
+      type: "number",
+      description: "点击时展示的商品价格。",
+      example: "19.9",
+    },
+    {
+      name: "currency",
+      type: "string",
+      description: "价格币种，使用 ISO 货币代码。",
+      example: "USD",
+    },
+    {
+      name: "source_page",
+      type: "string",
+      description: "触发点击的页面或弹层来源。",
+      example: "product_detail",
+    },
+  ],
+};
+
+export const governanceAcceptanceChecks: GovernanceAcceptanceCheck[] = [
+  {
+    label: "事件已接收",
+    detail: "prod 最近 2 分钟内收到 Web 与 Flutter 上报。",
+    tone: "success",
+  },
+  {
+    label: "必填字段完整",
+    detail: "Web payload 完整，Flutter 缺少 country 上下文字段。",
+    tone: "warning",
+  },
+  {
+    label: "属性类型匹配",
+    detail: "price 在 Flutter 端偶发 string，需要统一为 number。",
+    tone: "danger",
+  },
+  {
+    label: "版本覆盖",
+    detail: "Web 1.8.2 与 Flutter 2.1.0 均已有样本。",
+    tone: "success",
+  },
 ];
 
 export const pageShells = {

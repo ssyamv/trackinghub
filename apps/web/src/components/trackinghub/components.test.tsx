@@ -2,10 +2,18 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
 import type { AcceptanceItem } from "@/lib/trackinghub/sample-data";
-import { acceptanceItems, reportItems } from "@/lib/trackinghub/sample-data";
+import {
+  acceptanceItems,
+  eventDictionaryItems,
+  featuredEventDetail,
+  governanceAcceptanceChecks,
+  governanceSummaryCards,
+  reportItems,
+} from "@/lib/trackinghub/sample-data";
 import { AcceptanceTable } from "./acceptance-table";
 import { CodexSummaryCard } from "./codex-summary-card";
 import { EmptyPageState } from "./empty-page-state";
+import { GovernanceWorkbench } from "./governance-workbench";
 import { MetricCard } from "./metric-card";
 import { PageHeader } from "./page-header";
 import { StatusBadge } from "./status-badge";
@@ -117,5 +125,24 @@ describe("TrackingHub dashboard components", () => {
 
     expect(html).toContain("分析摘要");
     expect(html).toContain("spring_sale 活动转化率提升 12.4%");
+  });
+
+  it("renders the governance workbench with dictionary, detail, and acceptance checks", () => {
+    const html = renderToStaticMarkup(
+      <GovernanceWorkbench
+        acceptanceChecks={governanceAcceptanceChecks}
+        eventDetail={featuredEventDetail}
+        events={eventDictionaryItems}
+        summaryCards={governanceSummaryCards}
+      />,
+    );
+
+    expect(html).toContain("事件字典");
+    expect(html).toContain("重点事件");
+    expect(html).toContain("验收检查");
+    expect(html).toContain("pay_button_click");
+    expect(html).toContain("product_id");
+    expect(html).toContain("Schema 不一致");
+    expect(html).toContain('data-slot="table"');
   });
 });
