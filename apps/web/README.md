@@ -31,6 +31,10 @@ TRACKINGHUB_CLICKHOUSE_USERNAME=writer
 TRACKINGHUB_CLICKHOUSE_PASSWORD=secret
 ```
 
+## 分析查询配置
+
+`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和默认漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`range=7d|30d` 和 `granularity=day|hour`。未配置 ClickHouse 或查询失败时，页面继续显示示例数据，便于本地开发和静态演示。
+
 ## 元数据数据库与本地管理员
 
 项目、环境、SDK Key、事件字典和验收记录通过 Postgres 元数据仓储读取。配置任一连接串即可启用：

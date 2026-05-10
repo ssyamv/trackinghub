@@ -194,14 +194,39 @@ describe("TrackingHub dashboard components", () => {
   it("renders analytics templates for overview, trend, funnel, and retention", () => {
     const html = renderToStaticMarkup(
       <AnalyticsWorkbench
+        filters={{
+          eventName: "",
+          granularity: "day",
+          range: "7d",
+        }}
         funnelSteps={analyticsFunnelSteps}
         metrics={analyticsMetricCards}
+        source="sample"
         templates={analyticsTemplateItems}
+        trendItems={[
+          {
+            bucket: "05-10 00:00",
+            eventName: "pay_button_click",
+            environment: "prod",
+            source: "web",
+            eventCount: "120",
+            uniqueUsers: "88",
+          },
+        ]}
       />,
     );
 
     expect(html).toContain("分析模板");
+    expect(html).toContain("当前显示示例数据");
+    expect(html).toContain("项目 ID");
+    expect(html).toContain('name="environment"');
+    expect(html).toContain('name="source"');
+    expect(html).toContain('name="event_name"');
+    expect(html).toContain('name="range"');
+    expect(html).toContain('name="granularity"');
     expect(html).toContain("事件趋势");
+    expect(html).toContain("pay_button_click");
+    expect(html).toContain("唯一用户");
     expect(html).toContain("漏斗步骤");
     expect(html).toContain("D7 留存");
   });

@@ -129,6 +129,15 @@ export type AnalyticsFunnelStep = {
   conversion: string;
 };
 
+export type AnalyticsTrendItem = {
+  bucket: string;
+  eventName: string;
+  environment: string;
+  source: string;
+  eventCount: string;
+  uniqueUsers: string;
+};
+
 export type ReportTemplateItem = {
   type: string;
   cadence: string;
@@ -482,6 +491,33 @@ export const analyticsTemplateItems: AnalyticsTemplateItem[] = [
     description: "按首日行为和渠道查看 D1、D3、D7 cohort 留存。",
     metric: "D1 / D3 / D7 retention",
     filters: ["cohort", "渠道", "首日事件", "平台"],
+  },
+];
+
+export const analyticsTrendItems: AnalyticsTrendItem[] = [
+  {
+    bucket: "05-10 00:00",
+    eventName: "pay_button_click",
+    environment: "prod",
+    source: "web",
+    eventCount: "12.4k",
+    uniqueUsers: "7.8k",
+  },
+  {
+    bucket: "05-10 00:00",
+    eventName: "campaign_card_view",
+    environment: "prod",
+    source: "web",
+    eventCount: "18.9k",
+    uniqueUsers: "11.2k",
+  },
+  {
+    bucket: "05-09 00:00",
+    eventName: "subscription_success",
+    environment: "prod",
+    source: "flutter",
+    eventCount: "3.1k",
+    uniqueUsers: "3.1k",
   },
 ];
 
