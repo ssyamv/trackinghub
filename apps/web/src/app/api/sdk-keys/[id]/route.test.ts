@@ -79,4 +79,24 @@ describe("/api/sdk-keys/[id]", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("returns validation error for malformed JSON", async () => {
+    const response = await handleSdkKeyPatch(
+      new Request("http://localhost/api/sdk-keys/sdk_key_1", {
+        method: "PATCH",
+        body: "{",
+      }),
+      {
+        store: createMemoryMetadataStore(),
+        user: { role: "admin" },
+        sdkKeyId: "sdk_key_1",
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
+  });
 });

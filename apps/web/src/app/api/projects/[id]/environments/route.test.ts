@@ -53,4 +53,24 @@ describe("/api/projects/[id]/environments", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("returns validation error for malformed JSON", async () => {
+    const response = await handleProjectEnvironmentPost(
+      new Request("http://localhost/api/projects/project_1/environments", {
+        method: "POST",
+        body: "{",
+      }),
+      {
+        store: createMemoryMetadataStore(),
+        user: { role: "editor" },
+        projectId: "project_1",
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
+  });
 });

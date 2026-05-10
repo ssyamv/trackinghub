@@ -27,7 +27,14 @@ export async function handleProjectEnvironmentPost(
 ) {
   try {
     assertCanWrite(user);
-    const body: unknown = await request.json();
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError(400, "VALIDATION_ERROR", "请求体必须是合法 JSON");
+    }
+
     const name =
       typeof body === "object" &&
       body !== null &&

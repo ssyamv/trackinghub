@@ -1,4 +1,5 @@
 import { AuthError } from "@/lib/auth/permissions";
+import { MetadataStoreError } from "@/lib/metadata/metadata-store";
 
 export type ApiErrorCode =
   | "UNAUTHENTICATED"
@@ -36,6 +37,10 @@ export function jsonError(
 export function mapApiError(error: unknown) {
   if (error instanceof AuthError) {
     return jsonError(error.code === "UNAUTHENTICATED" ? 401 : 403, error.code);
+  }
+
+  if (error instanceof MetadataStoreError) {
+    return jsonError(404, "NOT_FOUND");
   }
 
   return jsonError(503, "DATABASE_UNAVAILABLE");

@@ -1,6 +1,18 @@
 import { jsonError, jsonOk, mapApiError } from "@/lib/api/http";
 import { assertCanWrite, type AuthenticatedUser } from "@/lib/auth/permissions";
-import type { MetadataStore } from "@/lib/metadata/metadata-store";
+import type {
+  MetadataStore,
+  PlatformSource,
+} from "@/lib/metadata/metadata-store";
+
+const PLATFORM_SOURCES = ["web", "flutter"] as const;
+
+function isPlatformSource(value: unknown): value is PlatformSource {
+  return (
+    typeof value === "string" &&
+    PLATFORM_SOURCES.some((platform) => platform === value)
+  );
+}
 
 export async function handleProjectsGet({
   store,
@@ -21,7 +33,14 @@ export async function handleProjectsPost(
 ) {
   try {
     assertCanWrite(user);
-    const body: unknown = await request.json();
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError(400, "VALIDATION_ERROR", "请求体必须是合法 JSON");
+    }
+
     const name =
       typeof body === "object" &&
       body !== null &&
@@ -41,6 +60,18 @@ export async function handleProjectsPost(
       return jsonError(400, "VALIDATION_ERROR", "项目名称和 slug 不能为空");
     }
 
+    const platforms =
+      typeof body === "object" &&
+      body !== null &&
+      "platforms" in body &&
+      Array.isArray(body.platforms)
+        ? body.platforms
+        : [];
+
+    if (!platforms.every(isPlatformSource)) {
+      return jsonError(400, "VALIDATION_ERROR", "项目平台只支持 web 或 flutter");
+    }
+
     const project = await store.createProject({
       name,
       slug,
@@ -58,13 +89,7 @@ export async function handleProjectsPost(
         typeof body.ownerName === "string"
           ? body.ownerName
           : "未分配",
-      platforms:
-        typeof body === "object" &&
-        body !== null &&
-        "platforms" in body &&
-        Array.isArray(body.platforms)
-          ? body.platforms
-          : [],
+      platforms,
     });
 
     return jsonOk({ project }, { status: 201 });

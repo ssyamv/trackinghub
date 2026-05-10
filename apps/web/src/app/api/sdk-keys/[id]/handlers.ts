@@ -25,7 +25,14 @@ export async function handleSdkKeyPatch(
 ) {
   try {
     assertCanManageSdkKeys(user);
-    const body: unknown = await request.json();
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError(400, "VALIDATION_ERROR", "请求体必须是合法 JSON");
+    }
+
     const status =
       typeof body === "object" &&
       body !== null &&

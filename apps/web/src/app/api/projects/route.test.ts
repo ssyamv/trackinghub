@@ -41,4 +41,46 @@ describe("/api/projects", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("returns validation error for malformed JSON", async () => {
+    const response = await handleProjectsPost(
+      new Request("http://localhost/api/projects", {
+        method: "POST",
+        body: "{",
+      }),
+      {
+        store: createMemoryMetadataStore(),
+        user: { role: "editor" },
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
+  });
+
+  it("rejects unsupported project platforms", async () => {
+    const response = await handleProjectsPost(
+      new Request("http://localhost/api/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Magic Frame",
+          slug: "magic-frame",
+          platforms: ["web", "ios"],
+        }),
+      }),
+      {
+        store: createMemoryMetadataStore(),
+        user: { role: "editor" },
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
+  });
 });
