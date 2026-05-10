@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/trackinghub/app-shell";
 import { PageHeader } from "@/components/trackinghub/page-header";
 import { ProjectManagementWorkbench } from "@/components/trackinghub/project-management-workbench";
+import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
+import { mapProjectsOverviewToWorkbench } from "@/lib/trackinghub/project-api";
 import {
   pageShells,
   projectEnvironmentItems,
@@ -9,7 +11,22 @@ import {
   sdkKeyItems,
 } from "@/lib/trackinghub/sample-data";
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  let workbench = {
+    summaryCards: projectSummaryCards,
+    projects: projectItems,
+    environments: projectEnvironmentItems,
+    sdkKeys: sdkKeyItems,
+  };
+
+  try {
+    workbench = mapProjectsOverviewToWorkbench(
+      await defaultMetadataStore.listProjectsOverview(),
+    );
+  } catch {
+    // Keep the local seed view usable when Postgres is not configured.
+  }
+
   return (
     <AppShell activeHref="/projects">
       <PageHeader
@@ -19,10 +36,10 @@ export default function ProjectsPage() {
       />
       <div className="mt-6">
         <ProjectManagementWorkbench
-          environments={projectEnvironmentItems}
-          projects={projectItems}
-          sdkKeys={sdkKeyItems}
-          summaryCards={projectSummaryCards}
+          environments={workbench.environments}
+          projects={workbench.projects}
+          sdkKeys={workbench.sdkKeys}
+          summaryCards={workbench.summaryCards}
         />
       </div>
     </AppShell>
