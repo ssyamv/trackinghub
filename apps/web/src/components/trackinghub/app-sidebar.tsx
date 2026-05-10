@@ -17,6 +17,28 @@ import {
 import { cn } from "@/lib/utils";
 import { navItems, timelineItems } from "@/lib/trackinghub/sample-data";
 
+function normalizeHref(href: string) {
+  if (href === "/") {
+    return href;
+  }
+
+  return href.replace(/\/+$/, "");
+}
+
+function isActiveHref(itemHref: string, activeHref: string) {
+  const normalizedItemHref = normalizeHref(itemHref);
+  const normalizedActiveHref = normalizeHref(activeHref);
+
+  if (normalizedItemHref === "/") {
+    return normalizedActiveHref === "/";
+  }
+
+  return (
+    normalizedActiveHref === normalizedItemHref ||
+    normalizedActiveHref.startsWith(`${normalizedItemHref}/`)
+  );
+}
+
 export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="offcanvas">
@@ -44,7 +66,10 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
                 生产数据流正常
               </p>
             </div>
-            <span className="mt-1 size-2 rounded-full bg-chart-2" />
+            <span
+              aria-hidden="true"
+              className="mt-1 size-2 rounded-full bg-chart-2"
+            />
           </div>
         </div>
       </SidebarHeader>
@@ -56,7 +81,12 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={item.href === activeHref}>
+                  <SidebarMenuButton
+                    asChild
+                    className="h-auto min-h-12 items-start py-2"
+                    isActive={isActiveHref(item.href, activeHref)}
+                    size="lg"
+                  >
                     <Link href={item.href}>
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate font-medium">
