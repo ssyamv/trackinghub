@@ -1,13 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptanceItems,
+  analyticsFunnelSteps,
+  analyticsMetricCards,
+  analyticsTemplateItems,
   eventDictionaryItems,
   featuredEventDetail,
   governanceAcceptanceChecks,
   governanceSummaryCards,
+  reportTaskItems,
+  reportTemplateItems,
+  projectEnvironmentItems,
+  projectItems,
+  projectSummaryCards,
   navItems,
   pageShells,
   reportItems,
+  sdkKeyItems,
   statusCards,
   timelineItems,
 } from "./sample-data";
@@ -75,5 +84,37 @@ describe("TrackingHub sample data", () => {
     expect(governanceAcceptanceChecks.some((item) => item.tone === "danger")).toBe(
       true,
     );
+  });
+
+  it("keeps project management data ready for projects, environments, and SDK keys", () => {
+    expect(projectSummaryCards.map((item) => item.label)).toEqual([
+      "项目总数",
+      "生产环境",
+      "启用 SDK Key",
+      "待处理接入",
+    ]);
+    expect(projectItems.map((item) => item.slug)).toContain("magic-frame");
+    expect(projectEnvironmentItems.map((item) => item.name)).toContain("prod");
+    expect(sdkKeyItems.some((item) => item.status === "启用")).toBe(true);
+  });
+
+  it("keeps analytics templates and report tasks ready", () => {
+    expect(analyticsMetricCards.map((item) => item.label)).toEqual([
+      "活跃用户",
+      "事件量",
+      "漏斗转化",
+      "D7 留存",
+    ]);
+    expect(analyticsTemplateItems.map((item) => item.title)).toEqual([
+      "概览",
+      "事件趋势",
+      "漏斗",
+      "留存",
+    ]);
+    expect(analyticsFunnelSteps.map((item) => item.eventName)).toContain(
+      "pay_button_click",
+    );
+    expect(reportTemplateItems.map((item) => item.type)).toContain("异常解释");
+    expect(reportTaskItems.some((item) => item.owner === "Codex")).toBe(true);
   });
 });

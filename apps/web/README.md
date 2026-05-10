@@ -20,6 +20,17 @@ pnpm run test
 pnpm run build
 ```
 
+## 事件写入配置
+
+`POST /api/events` 校验通过后会写入 ClickHouse `raw_events`。本地未配置 ClickHouse 时使用空写入器，便于 UI 与 SDK 开发。
+
+```bash
+TRACKINGHUB_CLICKHOUSE_URL=http://localhost:8123
+TRACKINGHUB_CLICKHOUSE_DATABASE=trackinghub
+TRACKINGHUB_CLICKHOUSE_USERNAME=writer
+TRACKINGHUB_CLICKHOUSE_PASSWORD=secret
+```
+
 ## 说明
 
 - 用户可见产品文案默认使用中文。

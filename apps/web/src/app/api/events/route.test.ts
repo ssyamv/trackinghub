@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { POST } from "./route";
+import { handleEventPost, POST } from "./route";
 
 const payload = {
   project_id: "project_x",
@@ -68,6 +68,87 @@ describe("POST /api/events", () => {
     expect(await response.json()).toEqual({
       accepted: false,
       errors: ["request body must be valid JSON"],
+    });
+  });
+
+  it("persists valid event envelopes before accepting them", async () => {
+    const persistedEvents: unknown[] = [];
+    const validationResults: unknown[] = [];
+
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+      {
+        eventWriter: {
+          writeRawEvent: async (event) => {
+            persistedEvents.push(event);
+          },
+          writeValidationResult: async (result) => {
+            validationResults.push(result);
+          },
+        },
+        createEventId: () => "event_123",
+        now: () => new Date("2026-05-10T07:30:00.000Z"),
+      },
+    );
+
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({
+      accepted: true,
+      event_id: "event_123",
+      event_name: "pay_button_click",
+      received_at: "2026-05-10T07:30:00.000Z",
+    });
+    expect(persistedEvents).toEqual([
+      {
+        ...payload,
+        event_id: "event_123",
+        received_at: "2026-05-10T07:30:00.000Z",
+      },
+    ]);
+    expect(validationResults).toEqual([
+      {
+        id: "validation_event_123",
+        project_id: "project_x",
+        event_definition_id: "pay_button_click",
+        event_name: "pay_button_click",
+        environment: "prod",
+        source: "web",
+        status: "invalid",
+        errors: [
+          "price is required",
+          "currency is required",
+          "source_page is required",
+        ],
+        sample_event_id: "event_123",
+        observed_at: "2026-05-10T07:30:00.000Z",
+      },
+    ]);
+  });
+
+  it("returns a persistence error when raw event storage fails", async () => {
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+      {
+        eventWriter: {
+          writeRawEvent: async () => {
+            throw new Error("ClickHouse unavailable");
+          },
+        },
+        createEventId: () => "event_123",
+        now: () => new Date("2026-05-10T07:30:00.000Z"),
+      },
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      accepted: false,
+      errors: ["event persistence is unavailable"],
     });
   });
 });

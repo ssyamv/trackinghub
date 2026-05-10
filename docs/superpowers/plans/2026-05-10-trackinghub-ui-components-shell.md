@@ -1,6 +1,6 @@
 # TrackingHub UI Components Shell Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Introduce shadcn/ui into TrackingHub Web, split the current dashboard into reusable components, and add consistent page shells for the main admin routes.
 
@@ -63,7 +63,7 @@ The current worktree already has uncommitted UI changes in `apps/web/README.md`,
 - Modify: `apps/web/package.json`
 - Modify: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Capture current dirty state**
+- [x] **Step 1: Capture current dirty state**
 
 Run:
 
@@ -74,7 +74,7 @@ git diff -- apps/web/src/app/globals.css apps/web/src/app/page.tsx apps/web/src/
 
 Expected: existing uncommitted UI and metadata edits are visible. Keep them unless a later step deliberately edits the same file.
 
-- [ ] **Step 2: Initialize shadcn in the web app**
+- [x] **Step 2: Initialize shadcn in the web app**
 
 Run:
 
@@ -85,7 +85,7 @@ pnpm dlx shadcn@latest init -t next --base-color neutral --yes
 
 Expected: `components.json` and `src/lib/utils.ts` are created. If the CLI asks whether to continue because files already exist, answer yes only for shadcn-managed additions; do not accept an overwrite that deletes the current TrackingHub page, fonts, or Chinese metadata.
 
-- [ ] **Step 3: Add the first shadcn components**
+- [x] **Step 3: Add the first shadcn components**
 
 Run:
 
@@ -96,7 +96,7 @@ pnpm dlx shadcn@latest add button card badge table tabs separator sidebar toolti
 
 Expected: the listed files exist under `apps/web/src/components/ui`.
 
-- [ ] **Step 4: Verify shadcn config points at the current app**
+- [x] **Step 4: Verify shadcn config points at the current app**
 
 Check `apps/web/components.json` and adjust only if needed so it has this shape:
 
@@ -126,7 +126,7 @@ Check `apps/web/components.json` and adjust only if needed so it has this shape:
 
 Expected: aliases use the existing `@/*` tsconfig path.
 
-- [ ] **Step 5: Verify `cn` helper exists**
+- [x] **Step 5: Verify `cn` helper exists**
 
 Check `apps/web/src/lib/utils.ts` contains:
 
@@ -141,7 +141,7 @@ export function cn(...inputs: ClassValue[]) {
 
 Expected: `clsx` and `tailwind-merge` are dependencies in `apps/web/package.json`.
 
-- [ ] **Step 6: Run lint for the shadcn baseline**
+- [x] **Step 6: Run lint for the shadcn baseline**
 
 Run:
 
@@ -151,7 +151,7 @@ pnpm --filter web lint
 
 Expected: no lint errors from generated shadcn files.
 
-- [ ] **Step 7: Commit shadcn baseline**
+- [x] **Step 7: Commit shadcn baseline**
 
 Run:
 
@@ -170,7 +170,7 @@ Expected: commit succeeds. If `globals.css` contains pre-existing uncommitted Tr
 - Create: `apps/web/src/lib/trackinghub/sample-data.test.ts`
 - Create: `apps/web/src/lib/trackinghub/sample-data.ts`
 
-- [ ] **Step 1: Write failing data contract tests**
+- [x] **Step 1: Write failing data contract tests**
 
 Create `apps/web/src/lib/trackinghub/sample-data.test.ts`:
 
@@ -229,7 +229,7 @@ describe("TrackingHub sample data", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -239,7 +239,7 @@ pnpm --filter web test -- src/lib/trackinghub/sample-data.test.ts
 
 Expected: FAIL because `sample-data.ts` does not exist.
 
-- [ ] **Step 3: Implement sample data**
+- [x] **Step 3: Implement sample data**
 
 Create `apps/web/src/lib/trackinghub/sample-data.ts`:
 
@@ -403,7 +403,7 @@ export const pageShells = {
 } satisfies Record<string, PageShell>;
 ```
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run:
 
@@ -413,7 +413,7 @@ pnpm --filter web test -- src/lib/trackinghub/sample-data.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit sample data**
+- [x] **Step 5: Commit sample data**
 
 Run:
 
@@ -436,7 +436,7 @@ Expected: commit succeeds.
 - Create: `apps/web/src/components/trackinghub/empty-page-state.tsx`
 - Create: `apps/web/src/components/trackinghub/metric-card.tsx`
 
-- [ ] **Step 1: Enable `.test.tsx` in Vitest**
+- [x] **Step 1: Enable `.test.tsx` in Vitest**
 
 Modify `apps/web/vitest.config.ts`:
 
@@ -451,7 +451,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: Write failing component rendering tests**
+- [x] **Step 2: Write failing component rendering tests**
 
 Create `apps/web/src/components/trackinghub/components.test.tsx`:
 
@@ -518,7 +518,7 @@ describe("TrackingHub components", () => {
 });
 ```
 
-- [ ] **Step 3: Run tests and verify RED**
+- [x] **Step 3: Run tests and verify RED**
 
 Run:
 
@@ -528,7 +528,7 @@ pnpm --filter web test -- src/components/trackinghub/components.test.tsx
 
 Expected: FAIL because the component files do not exist.
 
-- [ ] **Step 4: Implement `StatusBadge`**
+- [x] **Step 4: Implement `StatusBadge`**
 
 Create `apps/web/src/components/trackinghub/status-badge.tsx`:
 
@@ -563,7 +563,7 @@ export function StatusBadge({
 }
 ```
 
-- [ ] **Step 5: Implement `PageHeader`**
+- [x] **Step 5: Implement `PageHeader`**
 
 Create `apps/web/src/components/trackinghub/page-header.tsx`:
 
@@ -600,7 +600,7 @@ export function PageHeader({
 }
 ```
 
-- [ ] **Step 6: Implement `MetricCard`**
+- [x] **Step 6: Implement `MetricCard`**
 
 Create `apps/web/src/components/trackinghub/metric-card.tsx`:
 
@@ -640,7 +640,7 @@ export function MetricCard({ label, value, detail, tone }: StatusCard) {
 }
 ```
 
-- [ ] **Step 7: Implement `EmptyPageState`**
+- [x] **Step 7: Implement `EmptyPageState`**
 
 Create `apps/web/src/components/trackinghub/empty-page-state.tsx`:
 
@@ -697,7 +697,7 @@ export function EmptyPageState({
 }
 ```
 
-- [ ] **Step 8: Run component tests and verify GREEN**
+- [x] **Step 8: Run component tests and verify GREEN**
 
 Run:
 
@@ -707,7 +707,7 @@ pnpm --filter web test -- src/components/trackinghub/components.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit core components**
+- [x] **Step 9: Commit core components**
 
 Run:
 
@@ -726,7 +726,7 @@ Expected: commit succeeds.
 - Create: `apps/web/src/components/trackinghub/app-sidebar.tsx`
 - Create: `apps/web/src/components/trackinghub/app-shell.tsx`
 
-- [ ] **Step 1: Implement `AppSidebar`**
+- [x] **Step 1: Implement `AppSidebar`**
 
 Create `apps/web/src/components/trackinghub/app-sidebar.tsx`:
 
@@ -831,7 +831,7 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
 }
 ```
 
-- [ ] **Step 2: Implement `AppShell`**
+- [x] **Step 2: Implement `AppShell`**
 
 Create `apps/web/src/components/trackinghub/app-shell.tsx`:
 
@@ -866,7 +866,7 @@ export function AppShell({
 }
 ```
 
-- [ ] **Step 3: Run lint**
+- [x] **Step 3: Run lint**
 
 Run:
 
@@ -876,7 +876,7 @@ pnpm --filter web lint
 
 Expected: no lint errors. If shadcn `Sidebar` API differs from the snippet, adjust imports to match the generated `apps/web/src/components/ui/sidebar.tsx` exports and keep the same public `AppShell` API.
 
-- [ ] **Step 4: Commit shell components**
+- [x] **Step 4: Commit shell components**
 
 Run:
 
@@ -897,7 +897,7 @@ Expected: commit succeeds.
 - Modify: `apps/web/src/app/page.tsx`
 - Modify: `apps/web/src/components/trackinghub/components.test.tsx`
 
-- [ ] **Step 1: Extend rendering tests for dashboard components**
+- [x] **Step 1: Extend rendering tests for dashboard components**
 
 Append these tests to `apps/web/src/components/trackinghub/components.test.tsx`:
 
@@ -925,7 +925,7 @@ describe("TrackingHub dashboard components", () => {
 
 If duplicate imports are created, merge them into the existing import block.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -935,7 +935,7 @@ pnpm --filter web test -- src/components/trackinghub/components.test.tsx
 
 Expected: FAIL because `acceptance-table.tsx` and `codex-summary-card.tsx` do not exist.
 
-- [ ] **Step 3: Implement `AcceptanceTable`**
+- [x] **Step 3: Implement `AcceptanceTable`**
 
 Create `apps/web/src/components/trackinghub/acceptance-table.tsx`:
 
@@ -1006,7 +1006,7 @@ export function AcceptanceTable({ items }: { items: AcceptanceItem[] }) {
 }
 ```
 
-- [ ] **Step 4: Implement `CodexSummaryCard`**
+- [x] **Step 4: Implement `CodexSummaryCard`**
 
 Create `apps/web/src/components/trackinghub/codex-summary-card.tsx`:
 
@@ -1055,7 +1055,7 @@ export function CodexSummaryCard({ items }: { items: string[] }) {
 }
 ```
 
-- [ ] **Step 5: Refactor the home page**
+- [x] **Step 5: Refactor the home page**
 
 Replace `apps/web/src/app/page.tsx` with:
 
@@ -1102,7 +1102,7 @@ export default function Home() {
 }
 ```
 
-- [ ] **Step 6: Run dashboard component tests**
+- [x] **Step 6: Run dashboard component tests**
 
 Run:
 
@@ -1112,7 +1112,7 @@ pnpm --filter web test -- src/components/trackinghub/components.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 7: Run lint**
+- [x] **Step 7: Run lint**
 
 Run:
 
@@ -1122,7 +1122,7 @@ pnpm --filter web lint
 
 Expected: no lint errors.
 
-- [ ] **Step 8: Commit home refactor**
+- [x] **Step 8: Commit home refactor**
 
 Run:
 
@@ -1145,7 +1145,7 @@ Expected: commit succeeds.
 - Create: `apps/web/src/app/reports/page.tsx`
 - Create: `apps/web/src/app/settings/page.tsx`
 
-- [ ] **Step 1: Implement reusable page shell content**
+- [x] **Step 1: Implement reusable page shell content**
 
 Create `apps/web/src/components/trackinghub/page-shell.tsx`:
 
@@ -1183,7 +1183,7 @@ export function PageShell({
 }
 ```
 
-- [ ] **Step 2: Add projects page**
+- [x] **Step 2: Add projects page**
 
 Create `apps/web/src/app/projects/page.tsx`:
 
@@ -1196,7 +1196,7 @@ export default function ProjectsPage() {
 }
 ```
 
-- [ ] **Step 3: Add governance page**
+- [x] **Step 3: Add governance page**
 
 Create `apps/web/src/app/governance/page.tsx`:
 
@@ -1209,7 +1209,7 @@ export default function GovernancePage() {
 }
 ```
 
-- [ ] **Step 4: Add analytics page**
+- [x] **Step 4: Add analytics page**
 
 Create `apps/web/src/app/analytics/page.tsx`:
 
@@ -1222,7 +1222,7 @@ export default function AnalyticsPage() {
 }
 ```
 
-- [ ] **Step 5: Add reports page**
+- [x] **Step 5: Add reports page**
 
 Create `apps/web/src/app/reports/page.tsx`:
 
@@ -1235,7 +1235,7 @@ export default function ReportsPage() {
 }
 ```
 
-- [ ] **Step 6: Add settings page**
+- [x] **Step 6: Add settings page**
 
 Create `apps/web/src/app/settings/page.tsx`:
 
@@ -1248,7 +1248,7 @@ export default function SettingsPage() {
 }
 ```
 
-- [ ] **Step 7: Run lint**
+- [x] **Step 7: Run lint**
 
 Run:
 
@@ -1258,7 +1258,7 @@ pnpm --filter web lint
 
 Expected: no lint errors.
 
-- [ ] **Step 8: Commit page shells**
+- [x] **Step 8: Commit page shells**
 
 Run:
 
@@ -1277,7 +1277,7 @@ Expected: commit succeeds.
 - Modify: `apps/web/src/app/globals.css`
 - Modify: `apps/web/README.md`
 
-- [ ] **Step 1: Replace old custom utility classes with shadcn-compatible globals**
+- [x] **Step 1: Replace old custom utility classes with shadcn-compatible globals**
 
 Keep the shadcn-generated CSS variables in `apps/web/src/app/globals.css`. Remove custom classes that are no longer used by the refactored app, including `.th-card`, `.th-button-primary`, `.th-button-secondary`, `.th-tab-active`, `.th-pill-active`, and `.th-doodle`.
 
@@ -1318,7 +1318,7 @@ textarea {
 
 Expected: the app uses shadcn semantic classes and no page imports rely on removed `.th-*` classes.
 
-- [ ] **Step 2: Update README component guidance**
+- [x] **Step 2: Update README component guidance**
 
 Append this section to `apps/web/README.md`:
 
@@ -1331,7 +1331,7 @@ Append this section to `apps/web/README.md`:
 - 用户可见文案默认中文；SDK API、事件字段和数据库字段保持英文。
 ```
 
-- [ ] **Step 3: Run lint**
+- [x] **Step 3: Run lint**
 
 Run:
 
@@ -1341,7 +1341,7 @@ pnpm --filter web lint
 
 Expected: no lint errors.
 
-- [ ] **Step 4: Commit styling and docs cleanup**
+- [x] **Step 4: Commit styling and docs cleanup**
 
 Run:
 
@@ -1359,7 +1359,7 @@ Expected: commit succeeds.
 **Files:**
 - No planned file edits.
 
-- [ ] **Step 1: Run focused Web tests**
+- [x] **Step 1: Run focused Web tests**
 
 Run:
 
@@ -1369,7 +1369,7 @@ pnpm --filter web test
 
 Expected: all web tests pass, including envelope tests, route tests, sample-data tests, and component rendering tests.
 
-- [ ] **Step 2: Run Web lint**
+- [x] **Step 2: Run Web lint**
 
 Run:
 
@@ -1379,7 +1379,7 @@ pnpm --filter web lint
 
 Expected: no lint errors.
 
-- [ ] **Step 3: Run Web build**
+- [x] **Step 3: Run Web build**
 
 Run:
 
@@ -1389,7 +1389,7 @@ pnpm --filter web build
 
 Expected: Next.js build succeeds and includes `/`, `/projects`, `/governance`, `/analytics`, `/reports`, and `/settings`.
 
-- [ ] **Step 4: Start local dev server**
+- [x] **Step 4: Start local dev server**
 
 Run:
 
@@ -1399,7 +1399,7 @@ pnpm --filter web dev
 
 Expected: dev server starts on `http://localhost:3000`. If port 3000 is occupied, use the printed alternate URL.
 
-- [ ] **Step 5: Browser-check the home dashboard**
+- [x] **Step 5: Browser-check the home dashboard**
 
 Open the dev server in the browser and visit:
 
@@ -1409,7 +1409,7 @@ http://localhost:3000/
 
 Expected: the sidebar, page header, four metric cards, acceptance table, and Codex summary render without overlap.
 
-- [ ] **Step 6: Browser-check the page shells**
+- [x] **Step 6: Browser-check the page shells**
 
 Visit:
 
@@ -1423,7 +1423,7 @@ http://localhost:3000/settings
 
 Expected: each route renders the shared shell, correct active navigation item, Chinese title, concise description, and module sections.
 
-- [ ] **Step 7: Check final git status**
+- [x] **Step 7: Check final git status**
 
 Run:
 

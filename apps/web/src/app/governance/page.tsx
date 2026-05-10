@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/trackinghub/app-shell";
+import { EventDictionaryEditor } from "@/components/trackinghub/event-dictionary-editor";
 import { GovernanceWorkbench } from "@/components/trackinghub/governance-workbench";
 import { PageHeader } from "@/components/trackinghub/page-header";
 import {
+  editableEventDefinitions,
   eventDictionaryItems,
   featuredEventDetail,
   governanceAcceptanceChecks,
@@ -24,6 +26,9 @@ export default function GovernancePage() {
           events={eventDictionaryItems}
           summaryCards={governanceSummaryCards}
         />
+      </div>
+      <div className="mt-6">
+        <EventDictionaryEditor definitions={editableEventDefinitions} />
       </div>
     </AppShell>
   );

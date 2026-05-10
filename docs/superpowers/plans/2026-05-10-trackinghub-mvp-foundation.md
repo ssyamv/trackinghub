@@ -1,6 +1,6 @@
 # TrackingHub MVP Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the first testable TrackingHub foundation: monorepo scaffold, Next.js admin shell, shared event contract, ingestion validation surface, Postgres schema draft, ClickHouse schema draft, Web SDK package, and Flutter SDK package.
 
@@ -50,7 +50,7 @@ This plan implements the first foundation slice only. It does not complete authe
 - Create: `pnpm-workspace.yaml`
 - Create: `.gitignore`
 
-- [ ] **Step 1: Create root workspace manifest**
+- [x] **Step 1: Create root workspace manifest**
 
 Write `package.json`:
 
@@ -71,7 +71,7 @@ Write `package.json`:
 }
 ```
 
-- [ ] **Step 2: Create pnpm workspace manifest**
+- [x] **Step 2: Create pnpm workspace manifest**
 
 Write `pnpm-workspace.yaml`:
 
@@ -81,7 +81,7 @@ packages:
   - "packages/web-sdk"
 ```
 
-- [ ] **Step 3: Create repository ignore rules**
+- [x] **Step 3: Create repository ignore rules**
 
 Write `.gitignore`:
 
@@ -105,7 +105,7 @@ packages/flutter-sdk/.packages
 packages/flutter-sdk/pubspec.lock
 ```
 
-- [ ] **Step 4: Verify workspace manifest parses**
+- [x] **Step 4: Verify workspace manifest parses**
 
 Run: `pnpm list --depth -1`
 
@@ -126,7 +126,7 @@ Expected: output includes `apps/web` and `packages/web-sdk`.
 - Create: `apps/web/src/app/layout.tsx`
 - Create: `apps/web/src/app/page.tsx`
 
-- [ ] **Step 1: Generate the app shell**
+- [x] **Step 1: Generate the app shell**
 
 Run:
 
@@ -136,7 +136,7 @@ pnpm dlx create-next-app@latest apps/web --ts --tailwind --eslint --app --src-di
 
 Expected: `apps/web/package.json`, `apps/web/src/app/page.tsx`, and `apps/web/src/app/layout.tsx` exist.
 
-- [ ] **Step 2: Add test dependencies to the web app**
+- [x] **Step 2: Add test dependencies to the web app**
 
 Run:
 
@@ -146,7 +146,7 @@ pnpm --filter web add -D vitest @vitejs/plugin-react jsdom
 
 Expected: `apps/web/package.json` contains a `vitest` dev dependency.
 
-- [ ] **Step 3: Configure web app scripts**
+- [x] **Step 3: Configure web app scripts**
 
 Set `apps/web/package.json` scripts to:
 
@@ -159,7 +159,7 @@ Set `apps/web/package.json` scripts to:
 }
 ```
 
-- [ ] **Step 4: Create Vitest config**
+- [x] **Step 4: Create Vitest config**
 
 Write `apps/web/vitest.config.ts`:
 
@@ -174,11 +174,11 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: Replace starter home with TrackingHub MVP shell**
+- [x] **Step 5: Replace starter home with TrackingHub MVP shell**
 
 `apps/web/src/app/page.tsx` should render navigation labels from the design doc: Home, Projects, Tracking Governance, Analytics, Reports, Settings. It should show cross-project status cards for active projects, today's active users, event volume, anomalies, pending acceptance, and Codex summary.
 
-- [ ] **Step 6: Verify web app boots**
+- [x] **Step 6: Verify web app boots**
 
 Run: `pnpm --filter web lint`
 
@@ -192,7 +192,7 @@ Expected: no lint errors.
 - Create: `apps/web/src/lib/tracking/envelope.ts`
 - Create: `apps/web/src/lib/tracking/envelope.test.ts`
 
-- [ ] **Step 1: Write failing validation tests**
+- [x] **Step 1: Write failing validation tests**
 
 Write tests for:
 
@@ -252,17 +252,17 @@ describe("validateTrackingEnvelope", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm --filter web test -- src/lib/tracking/envelope.test.ts`
 
 Expected: FAIL because `./envelope` does not exist.
 
-- [ ] **Step 3: Implement minimal envelope validator**
+- [x] **Step 3: Implement minimal envelope validator**
 
 Implement exported types and `validateTrackingEnvelope(input: unknown)` returning `{ ok: true, value }` or `{ ok: false, errors }`.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `pnpm --filter web test -- src/lib/tracking/envelope.test.ts`
 
@@ -276,7 +276,7 @@ Expected: PASS.
 - Create: `apps/web/src/app/api/events/route.ts`
 - Create: `apps/web/src/app/api/events/route.test.ts`
 
-- [ ] **Step 1: Write failing route tests**
+- [x] **Step 1: Write failing route tests**
 
 Write tests that call `POST(new Request("http://localhost/api/events", { method: "POST", body: JSON.stringify(payload) }))` and assert:
 
@@ -290,13 +290,13 @@ expect(await response.json()).toMatchObject({
 
 For invalid payloads, assert status `400` and `accepted: false`.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm --filter web test -- src/app/api/events/route.test.ts`
 
 Expected: FAIL because the route does not exist.
 
-- [ ] **Step 3: Implement `POST /api/events`**
+- [x] **Step 3: Implement `POST /api/events`**
 
 Use Next.js App Router route handler convention:
 
@@ -321,7 +321,7 @@ export async function POST(request: Request) {
 }
 ```
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `pnpm --filter web test -- src/app/api/events/route.test.ts`
 
@@ -335,15 +335,15 @@ Expected: PASS.
 - Create: `db/postgres/001_metadata_schema.sql`
 - Create: `db/clickhouse/001_raw_events.sql`
 
-- [ ] **Step 1: Create Postgres metadata schema**
+- [x] **Step 1: Create Postgres metadata schema**
 
 Write DDL for the design-doc entities with UUID primary keys, `created_at`, `updated_at`, foreign keys, unique project slug per workspace, unique environment name per project, unique event name per project, and JSONB fields for flexible configuration.
 
-- [ ] **Step 2: Create ClickHouse raw events schema**
+- [x] **Step 2: Create ClickHouse raw events schema**
 
 Write a `raw_events` table using `MergeTree`, partitioned by month, ordered by `(project_id, environment, event_name, timestamp)`, with `properties` and `context` as JSON strings for the MVP.
 
-- [ ] **Step 3: Verify SQL files are inspectable**
+- [x] **Step 3: Verify SQL files are inspectable**
 
 Run: `rg -n "CREATE TABLE|raw_events|event_definitions|tracking_requests" db`
 
@@ -360,25 +360,25 @@ Expected: output includes both Postgres and ClickHouse schemas.
 - Create: `packages/web-sdk/src/index.ts`
 - Create: `packages/web-sdk/src/index.test.ts`
 
-- [ ] **Step 1: Create SDK package manifest**
+- [x] **Step 1: Create SDK package manifest**
 
 Use package name `@trackinghub/web-sdk`, ESM output, TypeScript build script, and Vitest test script.
 
-- [ ] **Step 2: Write failing SDK request-shape tests**
+- [x] **Step 2: Write failing SDK request-shape tests**
 
 Test that `client.track("pay_button_click", { product_id: "p_123" })` sends one JSON request to `/api/events` with source `web`, SDK version `0.1.0`, project/environment config, generated anonymous/session identifiers, properties, and context.
 
-- [ ] **Step 3: Run tests and verify RED**
+- [x] **Step 3: Run tests and verify RED**
 
 Run: `pnpm --filter @trackinghub/web-sdk test`
 
 Expected: FAIL because `src/index.ts` does not exist.
 
-- [ ] **Step 4: Implement minimal browser SDK**
+- [x] **Step 4: Implement minimal browser SDK**
 
 Expose `createTrackingHubClient({ endpoint, projectId, environment, writeKey, fetch })`. The client should provide `track(eventName, properties, options)` and send the shared envelope.
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run: `pnpm --filter @trackinghub/web-sdk test`
 
@@ -393,19 +393,19 @@ Expected: PASS.
 - Create: `packages/flutter-sdk/lib/trackinghub_flutter.dart`
 - Create: `packages/flutter-sdk/test/trackinghub_client_test.dart`
 
-- [ ] **Step 1: Create Dart package manifest**
+- [x] **Step 1: Create Dart package manifest**
 
 Use package name `trackinghub_flutter`, SDK constraint `>=3.3.0 <4.0.0`, and dev dependency `test`.
 
-- [ ] **Step 2: Write Dart serialization test**
+- [x] **Step 2: Write Dart serialization test**
 
 Assert `TrackingHubEvent(...).toJson()` returns the shared envelope fields with source `flutter`, project/environment config, event name, timestamp, properties, and context.
 
-- [ ] **Step 3: Implement minimal Dart model and client skeleton**
+- [x] **Step 3: Implement minimal Dart model and client skeleton**
 
 Create `TrackingHubConfig`, `TrackingHubEvent`, and `TrackingHubClient.track(...)`. Network transport can remain injectable so tests do not require real HTTP.
 
-- [ ] **Step 4: Run Dart tests if Dart is installed**
+- [x] **Step 4: Run Dart tests if Dart is installed**
 
 Run: `cd packages/flutter-sdk && dart test`
 
@@ -418,31 +418,31 @@ Expected: PASS when Dart SDK is available. If `dart` is unavailable, record that
 **Files:**
 - Modify only files touched by Tasks 1-7.
 
-- [ ] **Step 1: Install dependencies**
+- [x] **Step 1: Install dependencies**
 
 Run: `pnpm install`
 
 Expected: `pnpm-lock.yaml` is created and all pnpm workspace packages install.
 
-- [ ] **Step 2: Run lint**
+- [x] **Step 2: Run lint**
 
 Run: `pnpm run lint`
 
 Expected: PASS.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `pnpm run test`
 
 Expected: PASS for web app and Web SDK.
 
-- [ ] **Step 4: Run build**
+- [x] **Step 4: Run build**
 
 Run: `pnpm run build`
 
 Expected: PASS for Next.js app and Web SDK.
 
-- [ ] **Step 5: Inspect git scope**
+- [x] **Step 5: Inspect git scope**
 
 Run: `git status --short`
 
