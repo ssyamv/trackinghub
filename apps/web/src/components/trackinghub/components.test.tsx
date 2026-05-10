@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
+import type { AcceptanceItem } from "@/lib/trackinghub/sample-data";
 import { acceptanceItems, reportItems } from "@/lib/trackinghub/sample-data";
 import { AcceptanceTable } from "./acceptance-table";
 import { CodexSummaryCard } from "./codex-summary-card";
@@ -82,6 +83,31 @@ describe("TrackingHub dashboard components", () => {
 
     expect(html).toContain("pay_button_click");
     expect(html).toContain("Flutter 缺少国家字段");
+  });
+
+  it("allows long event names to wrap without hiding environment or status", () => {
+    const longEventItems: AcceptanceItem[] = [
+      {
+        event:
+          "subscription_checkout_payment_button_click_from_mobile_campaign_detail_sheet",
+        project: "Magic Frame",
+        source: "Flutter",
+        environment: "生产",
+        status: "Schema 不一致",
+        tone: "danger",
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <AcceptanceTable items={longEventItems} />,
+    );
+
+    expect(html).toContain("whitespace-normal");
+    expect(html).toContain(
+      "subscription_checkout_payment_button_click_from_mobile_campaign_detail_sheet",
+    );
+    expect(html).toContain("生产");
+    expect(html).toContain("Schema 不一致");
   });
 
   it("renders Codex summary report items", () => {

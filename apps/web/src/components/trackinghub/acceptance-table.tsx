@@ -41,9 +41,11 @@ export function AcceptanceTable({ items }: { items: AcceptanceItem[] }) {
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={`${item.project}-${item.event}`}>
-                <TableCell className="min-w-64 pl-4">
-                  <p className="break-all font-mono text-sm font-semibold leading-5 text-foreground">
+              <TableRow
+                key={`${item.project}-${item.event}-${item.source}-${item.environment}`}
+              >
+                <TableCell className="min-w-48 max-w-[28rem] whitespace-normal pl-4 align-top">
+                  <p className="whitespace-normal break-words font-mono text-sm font-semibold leading-5 text-foreground">
                     {item.event}
                   </p>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">
