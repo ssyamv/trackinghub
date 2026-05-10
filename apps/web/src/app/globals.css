@@ -1,19 +1,228 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f6f7f9;
-  --foreground: #15171c;
+  --background: #eeefe9;
+  --foreground: #23251d;
+  --card: #ffffff;
+  --card-foreground: #23251d;
+  --popover: #ffffff;
+  --popover-foreground: #23251d;
+  --primary: #f7a501;
+  --primary-foreground: #23251d;
+  --secondary: #e5e7e0;
+  --secondary-foreground: #23251d;
+  --muted: #e5e7e0;
+  --muted-foreground: #6c6e63;
+  --accent: #e5e7e0;
+  --accent-foreground: #23251d;
+  --destructive: #cd4239;
+  --border: #bfc1b7;
+  --input: #bfc1b7;
+  --ring: #2c84e0;
+  --chart-1: #f7a501;
+  --chart-2: #2c84e0;
+  --chart-3: #2c8c66;
+  --chart-4: #7c44a6;
+  --chart-5: #cd4239;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #23251d;
+  --sidebar-primary: #f7a501;
+  --sidebar-primary-foreground: #23251d;
+  --sidebar-accent: #e5e7e0;
+  --sidebar-accent-foreground: #23251d;
+  --sidebar-border: #bfc1b7;
+  --sidebar-ring: #2c84e0;
+  --th-canvas: #eeefe9;
+  --th-ink: #23251d;
+  --th-body: #4d4f46;
+  --th-muted: #6c6e63;
+  --th-ash: #9b9c92;
+  --th-hairline: #bfc1b7;
+  --th-hairline-soft: #dcdfd2;
+  --th-surface-soft: #e5e7e0;
+  --th-surface-card: #ffffff;
+  --th-surface-doc: #fcfcfa;
+  --th-surface-dark: #23251d;
+  --th-primary: #f7a501;
+  --th-primary-pressed: #dd9001;
+  --th-on-primary: #23251d;
+  --th-blue: #2c84e0;
+  --th-blue-soft: #dceaf6;
+  --th-green: #2c8c66;
+  --th-green-soft: #d9eddf;
+  --th-red: #cd4239;
+  --th-red-soft: #f7d6d3;
+  --th-purple: #7c44a6;
+  --th-purple-soft: #e7d8ee;
+  --th-link: #1078a3;
+  --th-radius-xs: 2px;
+  --th-radius-sm: 4px;
+  --th-radius-md: 6px;
+  --th-radius-lg: 8px;
 }
 
 @theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--th-canvas);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans),
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    sans-serif;
+  line-height: 1.5;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(44, 132, 224, 0.55);
+  outline-offset: 2px;
+}
+
+.th-card {
+  border: 1px solid var(--th-hairline);
+  border-radius: var(--th-radius-md);
+  background: var(--th-surface-card);
+  color: var(--th-ink);
+  box-shadow: 0 1px 0 rgba(35, 37, 29, 0.04);
+}
+
+.th-button-primary {
+  min-height: 40px;
+  border-radius: var(--th-radius-md);
+  background: var(--th-primary);
+  color: var(--th-on-primary);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.th-button-primary:hover {
+  background: var(--th-primary-pressed);
+  transform: translateY(-1px);
+}
+
+.th-button-secondary {
+  min-height: 40px;
+  border: 1px solid var(--th-hairline);
+  border-radius: var(--th-radius-md);
+  background: var(--th-surface-soft);
+  color: var(--th-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.th-button-secondary:hover {
+  background: var(--th-surface-card);
+  transform: translateY(-1px);
+}
+
+.th-tab-active {
+  border: 1px solid var(--th-hairline);
+  border-radius: var(--th-radius-md);
+  background: var(--th-surface-card);
+  color: var(--th-ink);
+}
+
+.th-pill-active {
+  border-radius: 9999px;
+  background: var(--th-ink);
+  color: #ffffff;
+}
+
+.th-doodle {
+  position: relative;
+}
+
+.th-doodle::before {
+  content: "";
+  position: absolute;
+  inset: 10px 14px auto auto;
+  width: 86px;
+  height: 38px;
+  pointer-events: none;
+  opacity: 0.76;
+  background:
+    radial-gradient(circle at 8px 26px, var(--th-primary) 0 5px, transparent 6px),
+    radial-gradient(circle at 42px 12px, var(--th-green) 0 4px, transparent 5px),
+    radial-gradient(circle at 76px 25px, var(--th-blue) 0 5px, transparent 6px),
+    linear-gradient(25deg, transparent 0 17px, var(--th-hairline) 18px 20px, transparent 21px),
+    linear-gradient(-21deg, transparent 0 51px, var(--th-hairline) 52px 54px, transparent 55px);
+}
+
+::selection {
+  background: var(--th-primary);
+  color: var(--th-ink);
 }
