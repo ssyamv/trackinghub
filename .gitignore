@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.turbo/
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+
+packages/flutter-sdk/.dart_tool/
+packages/flutter-sdk/build/
+packages/flutter-sdk/.packages
+packages/flutter-sdk/pubspec.lock

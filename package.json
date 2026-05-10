@@ -1,0 +1,17 @@
+{
+  "name": "trackinghub",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Internal tracking governance and product analytics platform.",
+  "workspaces": [
+    "apps/web",
+    "packages/web-sdk"
+  ],
+  "scripts": {
+    "dev": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/web run build && npm --workspace packages/web-sdk run build",
+    "lint": "npm --workspace apps/web run lint && npm --workspace packages/web-sdk run lint",
+    "test": "npm --workspace apps/web run test && npm --workspace packages/web-sdk run test",
+    "check": "npm run lint && npm run test && npm run build"
+  }
+}
