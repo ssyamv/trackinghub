@@ -86,10 +86,10 @@ describe("default auth store", () => {
       passwordHash: "hash_2",
       enabled: true,
     });
-    expect(queryPostgresMock.mock.calls[0][1]).toEqual([
-      hashSessionToken("plain_token"),
-      now.toISOString(),
-    ]);
+    const [sql, values] = queryPostgresMock.mock.calls[0];
+    expect(sql).toContain("sessions.expires_at > $2");
+    expect(sql).toContain("users.enabled = true");
+    expect(values).toEqual([hashSessionToken("plain_token"), now.toISOString()]);
   });
 
   it("deletes sessions by hashed token", async () => {
