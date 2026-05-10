@@ -8,6 +8,19 @@ export type EventDefinitionStatus =
   | "accepted"
   | "deprecated";
 
+export type MetadataStoreErrorCode =
+  | "PROJECT_NOT_FOUND"
+  | "ENVIRONMENT_NOT_FOUND"
+  | "SDK_KEY_NOT_FOUND"
+  | "EVENT_DEFINITION_NOT_FOUND";
+
+export class MetadataStoreError extends Error {
+  constructor(public readonly code: MetadataStoreErrorCode) {
+    super(code);
+    this.name = "MetadataStoreError";
+  }
+}
+
 export type ProjectRecord = {
   id: string;
   name: string;
@@ -99,6 +112,44 @@ export type MetadataStore = {
   ): Promise<EventDefinitionRecord>;
 };
 
+function cloneProject(project: ProjectRecord): ProjectRecord {
+  return {
+    ...project,
+    platforms: [...project.platforms],
+  };
+}
+
+function cloneEnvironment(
+  environment: ProjectEnvironmentRecord,
+): ProjectEnvironmentRecord {
+  return {
+    ...environment,
+  };
+}
+
+function cloneSdkKey(sdkKey: SdkKeyRecord): SdkKeyRecord {
+  return {
+    ...sdkKey,
+  };
+}
+
+function cloneEventProperty(property: EventPropertyRecord): EventPropertyRecord {
+  return {
+    ...property,
+  };
+}
+
+function cloneEventDefinition(
+  definition: EventDefinitionRecord,
+): EventDefinitionRecord {
+  return {
+    ...definition,
+    platforms: [...definition.platforms],
+    requiredProperties: definition.requiredProperties.map(cloneEventProperty),
+    optionalProperties: definition.optionalProperties.map(cloneEventProperty),
+  };
+}
+
 export function createMemoryMetadataStore(): MetadataStore {
   const projects: ProjectRecord[] = [];
   const environments: ProjectEnvironmentRecord[] = [];
@@ -113,7 +164,7 @@ export function createMemoryMetadataStore(): MetadataStore {
     const project = projects.find((item) => item.id === projectId);
 
     if (!project) {
-      throw new Error("PROJECT_NOT_FOUND");
+      throw new MetadataStoreError("PROJECT_NOT_FOUND");
     }
 
     return project;
@@ -122,22 +173,23 @@ export function createMemoryMetadataStore(): MetadataStore {
   return {
     async listProjectsOverview() {
       return {
-        projects: [...projects],
-        environments: [...environments],
-        sdkKeys: [...sdkKeys],
+        projects: projects.map(cloneProject),
+        environments: environments.map(cloneEnvironment),
+        sdkKeys: sdkKeys.map(cloneSdkKey),
       };
     },
 
     async createProject(input) {
-      const project = {
+      const project: ProjectRecord = {
         id: `project_${projectSequence++}`,
-        status: "active",
         ...input,
+        platforms: [...input.platforms],
+        status: "active",
       };
 
       projects.push(project);
 
-      return project;
+      return cloneProject(project);
     },
 
     async upsertEnvironment(projectId, input) {
@@ -145,7 +197,7 @@ export function createMemoryMetadataStore(): MetadataStore {
       const existingIndex = environments.findIndex(
         (item) => item.projectId === projectId && item.name === input.name,
       );
-      const environment = {
+      const environment: ProjectEnvironmentRecord = {
         id:
           existingIndex >= 0
             ? environments[existingIndex].id
@@ -161,7 +213,7 @@ export function createMemoryMetadataStore(): MetadataStore {
         environments.push(environment);
       }
 
-      return environment;
+      return cloneEnvironment(environment);
     },
 
     async createSdkKey(projectId, environment, input) {
@@ -171,10 +223,10 @@ export function createMemoryMetadataStore(): MetadataStore {
       );
 
       if (!projectEnvironment) {
-        throw new Error("ENVIRONMENT_NOT_FOUND");
+        throw new MetadataStoreError("ENVIRONMENT_NOT_FOUND");
       }
 
-      const sdkKey = {
+      const sdkKey: SdkKeyRecord = {
         id: `sdk_key_${sdkKeySequence++}`,
         projectId,
         projectName: project.name,
@@ -185,28 +237,30 @@ export function createMemoryMetadataStore(): MetadataStore {
 
       sdkKeys.push(sdkKey);
 
-      return sdkKey;
+      return cloneSdkKey(sdkKey);
     },
 
     async listEventDefinitions() {
       return {
-        definitions: [...definitions],
+        definitions: definitions.map(cloneEventDefinition),
       };
     },
 
     async createEventDefinition(input) {
       const project = findProject(input.projectId);
-      const definition = {
+      const definition: EventDefinitionRecord = {
         id: `event_definition_${eventDefinitionSequence++}`,
-        projectName: project.name,
-        lastSeenAt: null,
-        optionalProperties: [],
         ...input,
+        projectName: project.name,
+        platforms: [...input.platforms],
+        requiredProperties: input.requiredProperties.map(cloneEventProperty),
+        optionalProperties: [],
+        lastSeenAt: null,
       };
 
       definitions.push(definition);
 
-      return definition;
+      return cloneEventDefinition(definition);
     },
   };
 }
