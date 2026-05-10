@@ -1,30 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TrackingHub Web
 
-## Getting Started
+TrackingHub Web 是内部多项目埋点治理与产品分析平台的管理后台。
 
-First, run the development server:
+## 本地开发
+
+在仓库根目录运行：
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 [http://localhost:3000](http://localhost:3000) 查看页面。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 常用命令
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm run lint
+pnpm run test
+pnpm run build
+```
 
-## Learn More
+## 说明
 
-To learn more about Next.js, take a look at the following resources:
+- 用户可见产品文案默认使用中文。
+- SDK API、事件字段、数据库字段保持英文，确保 Web 与 Flutter 端协议稳定。
+- 当前首页是 MVP 静态管理壳，后续会接入项目、事件字典、验收结果和分析报表数据。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## UI 组件约定
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/components/ui/*` 由 shadcn/ui CLI 生成，优先保持上游组件结构。
+- `src/components/trackinghub/*` 放 TrackingHub 业务组合组件。
+- 页面文件只负责组织数据和组件，不堆叠大段卡片、表格或侧栏 JSX。
+- 用户可见文案默认中文；SDK API、事件字段和数据库字段保持英文。
