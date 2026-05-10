@@ -31,6 +31,24 @@ TRACKINGHUB_CLICKHOUSE_USERNAME=writer
 TRACKINGHUB_CLICKHOUSE_PASSWORD=secret
 ```
 
+## 元数据数据库与本地管理员
+
+项目、环境、SDK Key、事件字典和验收记录通过 Postgres 元数据仓储读取。配置任一连接串即可启用：
+
+```bash
+TRACKINGHUB_POSTGRES_URL=postgres://trackinghub:trackinghub@localhost:5432/trackinghub
+# 或 DATABASE_URL=postgres://trackinghub:trackinghub@localhost:5432/trackinghub
+```
+
+新库初始化：
+
+```bash
+psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/001_metadata_schema.sql
+psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/002_local_bootstrap_admin.sql
+```
+
+本地 bootstrap 管理员：`admin@example.com` / `trackinghub-admin`。共享环境或生产环境不要使用这个默认账号。
+
 ## 说明
 
 - 用户可见产品文案默认使用中文。

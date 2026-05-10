@@ -2,8 +2,12 @@ import { AppShell } from "@/components/trackinghub/app-shell";
 import { EventDictionaryEditor } from "@/components/trackinghub/event-dictionary-editor";
 import { GovernanceWorkbench } from "@/components/trackinghub/governance-workbench";
 import { PageHeader } from "@/components/trackinghub/page-header";
+import { getCurrentUserFromCookieHeader } from "@/lib/api/auth";
+import { assertCanRead } from "@/lib/auth/permissions";
 import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
+import { getPostgresConnectionString } from "@/lib/metadata/postgres";
 import { mapGovernanceOverviewToWorkbench } from "@/lib/trackinghub/governance-api";
+import { headers } from "next/headers";
 import {
   editableEventDefinitions,
   eventDictionaryItems,
@@ -13,22 +17,31 @@ import {
   pageShells,
 } from "@/lib/trackinghub/sample-data";
 
-export default async function GovernancePage() {
-  let workbench = {
-    summaryCards: governanceSummaryCards,
-    events: eventDictionaryItems,
-    eventDetail: featuredEventDetail,
-    acceptanceChecks: governanceAcceptanceChecks,
-    editableDefinitions: editableEventDefinitions,
-  };
+export const dynamic = "force-dynamic";
 
-  try {
-    workbench = mapGovernanceOverviewToWorkbench(
-      await defaultMetadataStore.listEventDefinitions(),
-    );
-  } catch {
-    // Keep the local seed view usable when Postgres is not configured.
+async function getGovernanceWorkbench() {
+  if (!getPostgresConnectionString()) {
+    return {
+      summaryCards: governanceSummaryCards,
+      events: eventDictionaryItems,
+      eventDetail: featuredEventDetail,
+      acceptanceChecks: governanceAcceptanceChecks,
+      editableDefinitions: editableEventDefinitions,
+    };
   }
+
+  const user = await getCurrentUserFromCookieHeader(
+    (await headers()).get("cookie"),
+  );
+  assertCanRead(user);
+
+  return mapGovernanceOverviewToWorkbench(
+    await defaultMetadataStore.listEventDefinitions(),
+  );
+}
+
+export default async function GovernancePage() {
+  const workbench = await getGovernanceWorkbench();
 
   return (
     <AppShell activeHref="/governance">

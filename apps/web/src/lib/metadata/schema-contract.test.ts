@@ -6,6 +6,10 @@ const schema = readFileSync(
   path.resolve(process.cwd(), "../../db/postgres/001_metadata_schema.sql"),
   "utf8",
 );
+const localBootstrap = readFileSync(
+  path.resolve(process.cwd(), "../../db/postgres/002_local_bootstrap_admin.sql"),
+  "utf8",
+);
 
 describe("metadata postgres schema", () => {
   it("defines local auth tables and role checks", () => {
@@ -26,5 +30,12 @@ describe("metadata postgres schema", () => {
   it("supports governance acceptance and ready event definitions", () => {
     expect(schema).toContain("CREATE TABLE event_acceptance_records");
     expect(schema).toContain("status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'released', 'accepted', 'deprecated'))");
+  });
+
+  it("provides a local bootstrap path for fresh databases", () => {
+    expect(localBootstrap).toContain("INSERT INTO workspaces");
+    expect(localBootstrap).toContain("INSERT INTO users");
+    expect(localBootstrap).toContain("'admin@example.com'");
+    expect(localBootstrap).toContain("'admin'");
   });
 });

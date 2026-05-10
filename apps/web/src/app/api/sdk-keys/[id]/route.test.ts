@@ -37,7 +37,9 @@ describe("/api/sdk-keys/[id]", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
       ok: true,
       data: {
         sdkKey: {
@@ -46,6 +48,7 @@ describe("/api/sdk-keys/[id]", () => {
         },
       },
     });
+    expect(payload.data.sdkKey).not.toHaveProperty("keyHash");
   });
 
   it("blocks editors from changing SDK key status", async () => {

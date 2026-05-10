@@ -24,6 +24,12 @@ export function canManageSdkKeys(role: UserRole) {
   return role === "admin";
 }
 
+export function assertCanRead(user: AuthenticatedUser | null) {
+  if (!user) {
+    throw new AuthError("UNAUTHENTICATED");
+  }
+}
+
 export function assertCanWrite(user: AuthenticatedUser | null) {
   if (!user) {
     throw new AuthError("UNAUTHENTICATED");

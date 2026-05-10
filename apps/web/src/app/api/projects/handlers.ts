@@ -1,8 +1,14 @@
 import { jsonError, jsonOk, mapApiError } from "@/lib/api/http";
-import { assertCanWrite, type AuthenticatedUser } from "@/lib/auth/permissions";
+import {
+  assertCanRead,
+  assertCanWrite,
+  type AuthenticatedUser,
+} from "@/lib/auth/permissions";
 import type {
   MetadataStore,
   PlatformSource,
+  ProjectsOverview,
+  SdkKeyRecord,
 } from "@/lib/metadata/metadata-store";
 
 const PLATFORM_SOURCES = ["web", "flutter"] as const;
@@ -14,14 +20,36 @@ function isPlatformSource(value: unknown): value is PlatformSource {
   );
 }
 
+function toPublicSdkKey(sdkKey: SdkKeyRecord): Omit<SdkKeyRecord, "keyHash"> {
+  return {
+    id: sdkKey.id,
+    projectId: sdkKey.projectId,
+    projectName: sdkKey.projectName,
+    environment: sdkKey.environment,
+    source: sdkKey.source,
+    maskedKey: sdkKey.maskedKey,
+    status: sdkKey.status,
+    lastUsedAt: sdkKey.lastUsedAt,
+  };
+}
+
+function toPublicProjectsOverview(overview: ProjectsOverview) {
+  return {
+    ...overview,
+    sdkKeys: overview.sdkKeys.map(toPublicSdkKey),
+  };
+}
+
 export async function handleProjectsGet({
   store,
+  user,
 }: {
   store: MetadataStore;
   user: AuthenticatedUser | null;
 }) {
   try {
-    return jsonOk(await store.listProjectsOverview());
+    assertCanRead(user);
+    return jsonOk(toPublicProjectsOverview(await store.listProjectsOverview()));
   } catch (error) {
     return mapApiError(error);
   }

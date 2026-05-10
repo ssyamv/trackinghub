@@ -3,12 +3,29 @@ import {
   assertCanManageSdkKeys,
   type AuthenticatedUser,
 } from "@/lib/auth/permissions";
-import type { MetadataStore, SdkKeyStatus } from "@/lib/metadata/metadata-store";
+import type {
+  MetadataStore,
+  SdkKeyRecord,
+  SdkKeyStatus,
+} from "@/lib/metadata/metadata-store";
 
 const SDK_KEY_STATUSES = ["active", "rotating", "disabled"] as const;
 
 function isSdkKeyStatus(value: string): value is SdkKeyStatus {
   return SDK_KEY_STATUSES.some((status) => status === value);
+}
+
+function toPublicSdkKey(sdkKey: SdkKeyRecord): Omit<SdkKeyRecord, "keyHash"> {
+  return {
+    id: sdkKey.id,
+    projectId: sdkKey.projectId,
+    projectName: sdkKey.projectName,
+    environment: sdkKey.environment,
+    source: sdkKey.source,
+    maskedKey: sdkKey.maskedKey,
+    status: sdkKey.status,
+    lastUsedAt: sdkKey.lastUsedAt,
+  };
 }
 
 export async function handleSdkKeyPatch(
@@ -47,7 +64,7 @@ export async function handleSdkKeyPatch(
 
     const sdkKey = await store.updateSdkKeyStatus(sdkKeyId, status);
 
-    return jsonOk({ sdkKey });
+    return jsonOk({ sdkKey: toPublicSdkKey(sdkKey) });
   } catch (error) {
     return mapApiError(error);
   }

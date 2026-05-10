@@ -5,12 +5,23 @@ import { handleProjectsGet, handleProjectsPost } from "./handlers";
 describe("/api/projects", () => {
   it("lists project overview for viewers", async () => {
     const store = createMemoryMetadataStore();
-    await store.createProject({
+    const project = await store.createProject({
       name: "Magic Frame",
       slug: "magic-frame",
       description: "AI 相框分析",
       ownerName: "增长产品",
       platforms: ["web"],
+    });
+    await store.upsertEnvironment(project.id, {
+      name: "prod",
+      enabled: true,
+      lastEventAt: null,
+    });
+    await store.createSdkKey(project.id, "prod", {
+      source: "web",
+      maskedKey: "write_key_live_****91",
+      status: "active",
+      keyHash: "hash_should_not_leave_server",
     });
 
     const response = await handleProjectsGet({
@@ -19,11 +30,28 @@ describe("/api/projects", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
       ok: true,
       data: {
         projects: [{ slug: "magic-frame" }],
+        sdkKeys: [{ maskedKey: "write_key_live_****91" }],
       },
+    });
+    expect(payload.data.sdkKeys[0]).not.toHaveProperty("keyHash");
+  });
+
+  it("blocks anonymous users from listing project overview", async () => {
+    const response = await handleProjectsGet({
+      store: createMemoryMetadataStore(),
+      user: null,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "UNAUTHENTICATED" },
     });
   });
 

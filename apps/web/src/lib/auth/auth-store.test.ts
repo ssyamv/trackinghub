@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertCanRead,
   assertCanWrite,
   canManageSdkKeys,
   canWriteMetadata,
@@ -29,6 +30,11 @@ describe("auth permissions", () => {
     expect(() => assertCanWrite({ role: "viewer" as UserRole })).toThrow(
       "FORBIDDEN",
     );
+  });
+
+  it("requires a signed-in user to read internal metadata", () => {
+    expect(() => assertCanRead(null)).toThrow("UNAUTHENTICATED");
+    expect(() => assertCanRead({ role: "viewer" })).not.toThrow();
   });
 });
 

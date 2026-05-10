@@ -1,5 +1,9 @@
 import { jsonError, jsonOk, mapApiError } from "@/lib/api/http";
-import { assertCanWrite, type AuthenticatedUser } from "@/lib/auth/permissions";
+import {
+  assertCanRead,
+  assertCanWrite,
+  type AuthenticatedUser,
+} from "@/lib/auth/permissions";
 import type {
   EventDefinitionStatus,
   EventPropertyRecord,
@@ -116,11 +120,13 @@ function readString(body: Record<string, unknown>, key: string) {
 
 export async function handleEventDefinitionsGet({
   store,
+  user,
 }: {
   store: MetadataStore;
   user: AuthenticatedUser | null;
 }) {
   try {
+    assertCanRead(user);
     return jsonOk(await store.listEventDefinitions());
   } catch (error) {
     return mapApiError(error);

@@ -51,6 +51,19 @@ describe("/api/event-definitions", () => {
     expect(response.status).toBe(200);
   });
 
+  it("blocks anonymous users from listing event definitions", async () => {
+    const response = await handleEventDefinitionsGet({
+      store: createMemoryMetadataStore(),
+      user: null,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: "UNAUTHENTICATED" },
+    });
+  });
+
   it("rejects malformed JSON", async () => {
     const response = await handleEventDefinitionsPost(
       new Request("http://localhost/api/event-definitions", {

@@ -284,8 +284,7 @@ export const defaultMetadataStore: MetadataStore = {
                 sdk_keys.source,
                 sdk_keys.masked_key,
                 sdk_keys.status,
-                sdk_keys.last_used_at,
-                sdk_keys.key_hash
+                sdk_keys.last_used_at
            FROM sdk_keys
            JOIN project_environments
              ON project_environments.id = sdk_keys.project_environment_id
