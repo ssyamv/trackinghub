@@ -169,6 +169,111 @@ describe("metadata store contract", () => {
     );
   });
 
+  it("updates event definitions with provided fields only", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    const definition = await store.createEventDefinition({
+      projectId: project.id,
+      name: "pay_button_click",
+      displayName: "支付按钮点击",
+      description: "点击支付按钮",
+      triggerTiming: "点击支付主按钮",
+      module: "checkout",
+      platforms: ["web"],
+      status: "draft",
+      requiredProperties: [
+        {
+          name: "product_id",
+          type: "string",
+          required: true,
+          description: "商品 ID",
+          exampleValue: "p_123",
+        },
+      ],
+    });
+
+    const updated = await store.updateEventDefinition(definition.id, {
+      status: "accepted",
+      platforms: ["web", "flutter"],
+    });
+    const governance = await store.listEventDefinitions();
+
+    expect(updated).toMatchObject({
+      id: definition.id,
+      name: "pay_button_click",
+      displayName: "支付按钮点击",
+      status: "accepted",
+      platforms: ["web", "flutter"],
+    });
+    expect(governance.definitions[0].requiredProperties[0].name).toBe(
+      "product_id",
+    );
+  });
+
+  it("creates acceptance records and accepts definitions deterministically", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+    const definition = await store.createEventDefinition({
+      projectId: project.id,
+      name: "pay_button_click",
+      displayName: "支付按钮点击",
+      description: "点击支付按钮",
+      triggerTiming: "点击支付主按钮",
+      module: "checkout",
+      platforms: ["web"],
+      status: "draft",
+      requiredProperties: [],
+    });
+
+    const acceptance = await store.createAcceptanceRecord(definition.id, {
+      actorUserId: "user_1",
+      status: "accepted",
+      note: "样本完整",
+    });
+    const governance = await store.listEventDefinitions();
+
+    expect(acceptance).toEqual({
+      id: "acceptance_1",
+      eventDefinitionId: definition.id,
+      status: "accepted",
+      note: "样本完整",
+    });
+    expect(governance.definitions[0].status).toBe("accepted");
+  });
+
+  it("throws stable errors for missing event definition updates", async () => {
+    const store = createMemoryMetadataStore();
+
+    await expect(
+      store.updateEventDefinition("missing", { status: "accepted" }),
+    ).rejects.toMatchObject({
+      code: "EVENT_DEFINITION_NOT_FOUND",
+      name: "MetadataStoreError",
+    });
+    await expect(
+      store.createAcceptanceRecord("missing", {
+        actorUserId: null,
+        status: "accepted",
+        note: "样本完整",
+      }),
+    ).rejects.toMatchObject({
+      code: "EVENT_DEFINITION_NOT_FOUND",
+      name: "MetadataStoreError",
+    });
+  });
+
   it("does not expose internal references from create results", async () => {
     const store = createMemoryMetadataStore();
     const project = await store.createProject({

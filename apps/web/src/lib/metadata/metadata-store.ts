@@ -76,6 +76,13 @@ export type EventDefinitionRecord = {
   lastSeenAt: string | null;
 };
 
+export type EventAcceptanceRecord = {
+  id: string;
+  eventDefinitionId: string;
+  status: "accepted" | "rejected" | "needs_fix";
+  note: string;
+};
+
 export type ProjectsOverview = {
   projects: ProjectRecord[];
   environments: ProjectEnvironmentRecord[];
@@ -114,6 +121,30 @@ export type MetadataStore = {
       "id" | "projectName" | "lastSeenAt" | "optionalProperties"
     >,
   ): Promise<EventDefinitionRecord>;
+  updateEventDefinition(
+    id: string,
+    input: Partial<
+      Pick<
+        EventDefinitionRecord,
+        | "displayName"
+        | "description"
+        | "triggerTiming"
+        | "module"
+        | "platforms"
+        | "status"
+      >
+    > & {
+      requiredProperties?: EventPropertyRecord[];
+    },
+  ): Promise<EventDefinitionRecord>;
+  createAcceptanceRecord(
+    eventDefinitionId: string,
+    input: {
+      actorUserId: string | null;
+      status: "accepted" | "rejected" | "needs_fix";
+      note: string;
+    },
+  ): Promise<EventAcceptanceRecord>;
 };
 
 function cloneProject(project: ProjectRecord): ProjectRecord {
@@ -159,10 +190,12 @@ export function createMemoryMetadataStore(): MetadataStore {
   const environments: ProjectEnvironmentRecord[] = [];
   const sdkKeys: SdkKeyRecord[] = [];
   const definitions: EventDefinitionRecord[] = [];
+  const acceptanceRecords: EventAcceptanceRecord[] = [];
   let projectSequence = 1;
   let environmentSequence = 1;
   let sdkKeySequence = 1;
   let eventDefinitionSequence = 1;
+  let acceptanceSequence = 1;
 
   function findProject(projectId: string): ProjectRecord {
     const project = projects.find((item) => item.id === projectId);
@@ -172,6 +205,16 @@ export function createMemoryMetadataStore(): MetadataStore {
     }
 
     return project;
+  }
+
+  function findEventDefinitionIndex(eventDefinitionId: string): number {
+    const index = definitions.findIndex((item) => item.id === eventDefinitionId);
+
+    if (index < 0) {
+      throw new MetadataStoreError("EVENT_DEFINITION_NOT_FOUND");
+    }
+
+    return index;
   }
 
   return {
@@ -280,6 +323,49 @@ export function createMemoryMetadataStore(): MetadataStore {
       definitions.push(definition);
 
       return cloneEventDefinition(definition);
+    },
+
+    async updateEventDefinition(id, input) {
+      const definitionIndex = findEventDefinitionIndex(id);
+      const definition = definitions[definitionIndex];
+
+      definitions[definitionIndex] = {
+        ...definition,
+        displayName: input.displayName ?? definition.displayName,
+        description: input.description ?? definition.description,
+        triggerTiming: input.triggerTiming ?? definition.triggerTiming,
+        module: input.module ?? definition.module,
+        platforms: input.platforms
+          ? [...input.platforms]
+          : [...definition.platforms],
+        status: input.status ?? definition.status,
+        requiredProperties: input.requiredProperties
+          ? input.requiredProperties.map(cloneEventProperty)
+          : definition.requiredProperties.map(cloneEventProperty),
+      };
+
+      return cloneEventDefinition(definitions[definitionIndex]);
+    },
+
+    async createAcceptanceRecord(eventDefinitionId, input) {
+      const definitionIndex = findEventDefinitionIndex(eventDefinitionId);
+      const acceptanceRecord: EventAcceptanceRecord = {
+        id: `acceptance_${acceptanceSequence++}`,
+        eventDefinitionId,
+        status: input.status,
+        note: input.note,
+      };
+
+      acceptanceRecords.push(acceptanceRecord);
+
+      if (input.status === "accepted") {
+        definitions[definitionIndex] = {
+          ...definitions[definitionIndex],
+          status: "accepted",
+        };
+      }
+
+      return { ...acceptanceRecord };
     },
   };
 }
