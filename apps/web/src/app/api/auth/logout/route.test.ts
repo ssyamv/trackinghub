@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuthStore } from "@/lib/auth/auth-store";
-import { handleLogoutPost } from "./route";
+import { handleLogoutPost } from "./handlers";
 
 describe("POST /api/auth/logout", () => {
   it("deletes the current session and clears the cookie", async () => {

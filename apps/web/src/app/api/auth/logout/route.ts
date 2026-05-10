@@ -1,41 +1,23 @@
-import { jsonOk, mapApiError } from "@/lib/api/http";
 import type { AuthStore } from "@/lib/auth/auth-store";
-import { clearSessionCookie, parseSessionCookie } from "@/lib/auth/session";
+import { handleLogoutPost } from "./handlers";
 
 export const runtime = "nodejs";
 
-type LogoutDependencies = {
-  store: AuthStore;
+const unavailableAuthStore: AuthStore = {
+  findUserByEmail: async () => {
+    throw new Error("AUTH_STORE_UNAVAILABLE");
+  },
+  createSession: async () => {
+    throw new Error("AUTH_STORE_UNAVAILABLE");
+  },
+  findUserBySessionToken: async () => {
+    throw new Error("AUTH_STORE_UNAVAILABLE");
+  },
+  deleteSession: async () => {
+    throw new Error("AUTH_STORE_UNAVAILABLE");
+  },
 };
 
-export async function handleLogoutPost(
-  request: Request,
-  dependencies: LogoutDependencies,
-) {
-  try {
-    const token = parseSessionCookie(request.headers.get("cookie"));
-
-    if (token) {
-      await dependencies.store.deleteSession(token);
-    }
-
-    return jsonOk(
-      { loggedOut: true },
-      {
-        headers: {
-          "Set-Cookie": clearSessionCookie(),
-        },
-      },
-    );
-  } catch (error) {
-    return mapApiError(error);
-  }
-}
-
 export async function POST(request: Request) {
-  const { defaultAuthStore } = await import(
-    ["@/lib/auth", "default-auth-store"].join("/")
-  );
-
-  return handleLogoutPost(request, { store: defaultAuthStore });
+  return handleLogoutPost(request, { store: unavailableAuthStore });
 }

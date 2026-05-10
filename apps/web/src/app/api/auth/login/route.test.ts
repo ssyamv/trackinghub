@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuthStore } from "@/lib/auth/auth-store";
-import { handleLoginPost } from "./route";
+import { handleLoginPost } from "./handlers";
 
 const user = {
   id: "user_1",
@@ -51,6 +51,34 @@ describe("POST /api/auth/login", () => {
           name: "管理员",
           role: "admin",
         },
+      },
+    });
+  });
+
+  it("returns validation error for malformed JSON body", async () => {
+    const store: AuthStore = {
+      findUserByEmail: async () => user,
+      createSession: async () => {
+        throw new Error("not used");
+      },
+      findUserBySessionToken: async () => null,
+      deleteSession: async () => undefined,
+    };
+
+    const response = await handleLoginPost(
+      new Request("http://localhost/api/auth/login", {
+        method: "POST",
+        body: "{",
+      }),
+      { store },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "请求体必须是合法 JSON",
       },
     });
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuthStore } from "@/lib/auth/auth-store";
-import { handleMeGet } from "./route";
+import { handleMeGet } from "./handlers";
 
 const store: AuthStore = {
   findUserByEmail: async () => null,
