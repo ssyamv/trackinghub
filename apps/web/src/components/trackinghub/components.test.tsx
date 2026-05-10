@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
+import { acceptanceItems, reportItems } from "@/lib/trackinghub/sample-data";
+import { AcceptanceTable } from "./acceptance-table";
+import { CodexSummaryCard } from "./codex-summary-card";
 import { EmptyPageState } from "./empty-page-state";
 import { MetricCard } from "./metric-card";
 import { PageHeader } from "./page-header";
@@ -68,5 +71,23 @@ describe("TrackingHub components", () => {
     expect(html.split("rounded-lg border border-border bg-muted/40").length - 1).toBe(
       4,
     );
+  });
+});
+
+describe("TrackingHub dashboard components", () => {
+  it("renders acceptance rows", () => {
+    const html = renderToStaticMarkup(
+      <AcceptanceTable items={acceptanceItems} />,
+    );
+
+    expect(html).toContain("pay_button_click");
+    expect(html).toContain("Flutter 缺少国家字段");
+  });
+
+  it("renders Codex summary report items", () => {
+    const html = renderToStaticMarkup(<CodexSummaryCard items={reportItems} />);
+
+    expect(html).toContain("分析摘要");
+    expect(html).toContain("spring_sale 活动转化率提升 12.4%");
   });
 });
