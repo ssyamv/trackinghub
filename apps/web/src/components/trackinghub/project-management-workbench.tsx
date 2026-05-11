@@ -18,7 +18,7 @@ import type {
   ProjectItem,
   SdkKeyItem,
   StatusCard,
-} from "@/lib/trackinghub/sample-data";
+} from "@/lib/trackinghub/types";
 
 import { MetricCard } from "./metric-card";
 import { StatusBadge } from "./status-badge";

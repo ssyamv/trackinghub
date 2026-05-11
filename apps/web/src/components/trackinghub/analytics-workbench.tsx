@@ -21,7 +21,7 @@ import type {
   AnalyticsTemplateItem,
   AnalyticsTrendItem,
   StatusCard,
-} from "@/lib/trackinghub/sample-data";
+} from "@/lib/trackinghub/types";
 import type { AnalyticsFilters } from "@/lib/analytics/clickhouse-analytics";
 import { RotateCcw, Search } from "lucide-react";
 import type { ReactNode } from "react";
@@ -59,18 +59,16 @@ export function AnalyticsWorkbench({
   templates: AnalyticsTemplateItem[];
   funnelSteps: AnalyticsFunnelStep[];
   trendItems: AnalyticsTrendItem[];
-  source: "clickhouse" | "sample" | "unavailable";
+  source: "clickhouse" | "unavailable";
 }) {
   const sourceLabel =
     source === "clickhouse"
       ? "已连接真实 ClickHouse 数据"
-      : source === "sample"
-        ? "当前显示占位数据"
-        : "真实数据源不可用";
+      : "真实数据源不可用";
   const sourceDescription =
     source === "unavailable"
       ? "当前环境未读取到真实数据，请配置 ClickHouse 后再查看真实分析。"
-      : "优先读取 ClickHouse raw_events；仅在显式开启时回落占位数据。";
+      : "当前页面只读取 ClickHouse raw_events 和 event_validation_results。";
 
   return (
     <div className="space-y-6">
@@ -85,9 +83,7 @@ export function AnalyticsWorkbench({
           variant={
             source === "clickhouse"
               ? "default"
-              : source === "unavailable"
-                ? "destructive"
-                : "outline"
+              : "destructive"
           }
         >
           {sourceLabel}
@@ -134,7 +130,7 @@ export function AnalyticsWorkbench({
             <Input
               defaultValue={filters.eventName ?? ""}
               name="event_name"
-              placeholder="pay_button_click"
+              placeholder="event_name"
             />
           </FilterField>
           <div className="md:col-span-2 xl:col-span-2">
@@ -142,7 +138,7 @@ export function AnalyticsWorkbench({
               <Input
                 defaultValue={filters.funnelSteps.join(", ")}
                 name="funnel_steps"
-                placeholder="product_detail_view, pay_button_click"
+                placeholder="event_a, event_b"
               />
             </FilterField>
           </div>
@@ -250,7 +246,7 @@ export function AnalyticsWorkbench({
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">分析模板</CardTitle>
           <CardDescription>
-            MVP 优先提供固定模板，覆盖概览、事件趋势、漏斗和留存。
+            固定模板只定义查询入口，结果来自真实数据源。
           </CardDescription>
         </CardHeader>
         <CardContent>

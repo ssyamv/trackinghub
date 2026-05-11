@@ -155,7 +155,7 @@ describe("loadReportPreviewData", () => {
     expect(preview.funnelDropoff).toBeNull();
   });
 
-  it("uses fallback report preview data when explicitly enabled", async () => {
+  it("ignores legacy sample opt-in and keeps reports unavailable without real data", async () => {
     const preview = await loadReportPreviewData({
       env: {
         TRACKINGHUB_ALLOW_SAMPLE_DATA: "true",
@@ -167,15 +167,11 @@ describe("loadReportPreviewData", () => {
       },
     });
 
-    expect(preview.source).toBe("sample");
-    expect(preview.metrics.map((metric) => metric.label)).toEqual([
-      "事件量",
-      "活跃用户",
-      "异常占比",
-    ]);
-    expect(preview.trendItems.length).toBeGreaterThan(0);
-    expect(preview.funnelSteps.length).toBeGreaterThan(0);
-    expect(preview.funnelDropoff?.dropoff).toBe("42.2%");
+    expect(preview.source).toBe("unavailable");
+    expect(preview.metrics).toEqual([]);
+    expect(preview.trendItems).toEqual([]);
+    expect(preview.funnelSteps).toEqual([]);
+    expect(preview.funnelDropoff).toBeNull();
   });
 
   it("does not fall back to sample reports when real data is required", async () => {

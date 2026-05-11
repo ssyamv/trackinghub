@@ -119,7 +119,9 @@ export function buildDailyReportDraftHref(preview: ReportPreviewData) {
     params.set("event_name", preview.filters.eventName);
   }
 
-  params.set("funnel_steps", preview.filters.funnelSteps.join(","));
+  if (preview.filters.funnelSteps.length > 0) {
+    params.set("funnel_steps", preview.filters.funnelSteps.join(","));
+  }
   params.set("range", preview.filters.range);
   params.set("granularity", preview.filters.granularity);
   params.set("report_action", DAILY_REPORT_DRAFT_ACTION);

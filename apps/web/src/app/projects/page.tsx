@@ -7,29 +7,53 @@ import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
 import { getPostgresConnectionString } from "@/lib/metadata/postgres";
 import { mapProjectsOverviewToWorkbench } from "@/lib/trackinghub/project-api";
 import { headers } from "next/headers";
-import {
-  pageShells,
-  projectEnvironmentItems,
-  projectItems,
-  projectSummaryCards,
-  sdkKeyItems,
-} from "@/lib/trackinghub/sample-data";
+import { redirect } from "next/navigation";
+import { pageShells } from "@/lib/trackinghub/page-shells";
 
 export const dynamic = "force-dynamic";
 
 async function getProjectsWorkbench() {
   if (!getPostgresConnectionString()) {
     return {
-      summaryCards: projectSummaryCards,
-      projects: projectItems,
-      environments: projectEnvironmentItems,
-      sdkKeys: sdkKeyItems,
+      summaryCards: [
+        {
+          label: "项目总数",
+          value: "0",
+          detail: "未配置 Postgres 元数据源",
+          tone: "blue" as const,
+        },
+        {
+          label: "生产环境",
+          value: "0",
+          detail: "未读取到真实环境配置",
+          tone: "green" as const,
+        },
+        {
+          label: "启用 SDK Key",
+          value: "0",
+          detail: "未读取到真实 SDK Key",
+          tone: "purple" as const,
+        },
+        {
+          label: "待处理接入",
+          value: "0",
+          detail: "未读取到真实接入状态",
+          tone: "red" as const,
+        },
+      ],
+      projects: [],
+      environments: [],
+      sdkKeys: [],
     };
   }
 
   const user = await getCurrentUserFromCookieHeader(
     (await headers()).get("cookie"),
   );
+  if (!user) {
+    redirect("/login");
+  }
+
   assertCanRead(user);
 
   return mapProjectsOverviewToWorkbench(

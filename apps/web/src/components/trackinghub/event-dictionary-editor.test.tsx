@@ -1,8 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { editableEventDefinitions } from "@/lib/trackinghub/sample-data";
+import type { EditableEventDefinition } from "@/lib/trackinghub/event-dictionary-editor";
 import { EventDictionaryEditor } from "./event-dictionary-editor";
+
+const editableEventDefinitions: EditableEventDefinition[] = [
+  {
+    id: "photo_shared",
+    eventName: "photo_shared",
+    displayName: "照片分享",
+    description: "用户分享照片时触发。",
+    platforms: ["Web"],
+    requiredProperties: ["photo_id"],
+    status: "ready",
+  },
+];
 
 describe("EventDictionaryEditor", () => {
   it("renders CRUD controls for event definitions, properties, platforms, and status", () => {

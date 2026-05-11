@@ -1,10 +1,11 @@
 import { queryPostgres } from "@/lib/metadata/postgres";
-import { allowsSampleData, type RuntimeEnv } from "./sample-data-policy";
+
+export type RuntimeEnv = Record<string, string | undefined>;
 
 type CheckStatus = "ok" | "warning" | "error";
 
 export type HealthCheck = {
-  name: "postgres" | "clickhouse" | "eventPersistence" | "sampleData";
+  name: "postgres" | "clickhouse" | "eventPersistence";
   status: CheckStatus;
   message: string;
 };
@@ -78,7 +79,7 @@ export async function evaluateHealth({
       status: isProduction(env) ? "error" : "warning",
       message: isProduction(env)
         ? "生产环境未配置 Postgres"
-        : "本地未配置 Postgres，将使用静态回退数据",
+        : "本地未配置 Postgres，将显示空状态",
     });
   } else if (await pingPostgres()) {
     checks.push({
@@ -123,14 +124,6 @@ export async function evaluateHealth({
       requiresEventPersistence(env) && !hasClickHouse
         ? "事件持久化保护已启用但 ClickHouse 未配置"
         : "事件持久化保护已满足",
-  });
-
-  checks.push({
-    name: "sampleData",
-    status: allowsSampleData(env) ? "warning" : "ok",
-    message: allowsSampleData(env)
-      ? "当前环境允许回显占位数据"
-      : "当前环境不会回显占位数据",
   });
 
   return {

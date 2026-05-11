@@ -8,13 +8,9 @@ import {
   normalizeAnalyticsFilters,
 } from "@/lib/analytics/clickhouse-analytics";
 import {
-  analyticsFunnelSteps,
-  analyticsMetricCards,
   analyticsTemplateItems,
-  analyticsTrendItems,
-  pageShells,
-} from "@/lib/trackinghub/sample-data";
-import { allowsSampleData } from "@/lib/runtime/sample-data-policy";
+} from "@/lib/trackinghub/analytics-templates";
+import { pageShells } from "@/lib/trackinghub/page-shells";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +21,6 @@ type AnalyticsPageProps = {
 };
 
 async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
-  const fallback = {
-    source: "sample" as const,
-    metrics: analyticsMetricCards,
-    templates: analyticsTemplateItems,
-    funnelSteps: analyticsFunnelSteps,
-    trendItems: analyticsTrendItems,
-  };
   const unavailable = {
     source: "unavailable" as const,
     metrics: [],
@@ -42,7 +31,7 @@ async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
   const client = createClickHouseAnalyticsClientFromEnv();
 
   if (!client) {
-    return allowsSampleData() ? fallback : unavailable;
+    return unavailable;
   }
 
   try {
@@ -52,7 +41,7 @@ async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
       templates: analyticsTemplateItems,
     };
   } catch {
-    return allowsSampleData() ? fallback : unavailable;
+    return unavailable;
   }
 }
 

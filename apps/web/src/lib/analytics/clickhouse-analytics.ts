@@ -2,17 +2,10 @@ import type {
   AnalyticsFunnelStep,
   AnalyticsTrendItem,
   StatusCard,
-} from "@/lib/trackinghub/sample-data";
-
-export const DEFAULT_FUNNEL_EVENTS = [
-  "product_detail_view",
-  "pay_button_click",
-  "checkout_submit",
-  "subscription_success",
-] as const;
+} from "@/lib/trackinghub/types";
 
 export type AnalyticsData = {
-  source: "clickhouse" | "sample" | "unavailable";
+  source: "clickhouse" | "unavailable";
   metrics: StatusCard[];
   trendItems: AnalyticsTrendItem[];
   funnelSteps: AnalyticsFunnelStep[];
@@ -56,7 +49,7 @@ type AnalyticsEnv = Record<string, string | undefined>;
 type ClickHouseRow = Record<string, unknown>;
 
 export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
-  funnelSteps: [...DEFAULT_FUNNEL_EVENTS],
+  funnelSteps: [],
   granularity: "day",
   range: "7d",
 };
@@ -103,7 +96,7 @@ function normalizeFunnelSteps(value: unknown) {
     .filter((item): item is string => Boolean(item))
     .slice(0, 8);
 
-  return steps.length >= 2 ? steps : [...DEFAULT_FUNNEL_EVENTS];
+  return steps.length >= 2 ? steps : [];
 }
 
 export function normalizeAnalyticsFilters(
@@ -479,11 +472,17 @@ export function createClickHouseAnalyticsClientFromEnv(
             buildClickHouseUrl(clickHouseUrl, database, buildTrendQuery(filters)),
             headers,
           ),
-          queryClickHouseRows(
-            fetchImpl,
-            buildClickHouseUrl(clickHouseUrl, database, buildFunnelQuery(filters)),
-            headers,
-          ),
+          filters.funnelSteps.length >= 2
+            ? queryClickHouseRows(
+                fetchImpl,
+                buildClickHouseUrl(
+                  clickHouseUrl,
+                  database,
+                  buildFunnelQuery(filters),
+                ),
+                headers,
+              )
+            : Promise.resolve([]),
         ]);
 
       return {

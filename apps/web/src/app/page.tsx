@@ -1,16 +1,109 @@
 import { AppShell } from "@/components/trackinghub/app-shell";
-import { AcceptanceTable } from "@/components/trackinghub/acceptance-table";
-import { CodexSummaryCard } from "@/components/trackinghub/codex-summary-card";
 import { MetricCard } from "@/components/trackinghub/metric-card";
 import { PageHeader } from "@/components/trackinghub/page-header";
 import { Button } from "@/components/ui/button";
 import {
-  acceptanceItems,
-  reportItems,
-  statusCards,
-} from "@/lib/trackinghub/sample-data";
+  createClickHouseAnalyticsClientFromEnv,
+  type AnalyticsData,
+} from "@/lib/analytics/clickhouse-analytics";
+import { getCurrentUserFromCookieHeader } from "@/lib/api/auth";
+import { assertCanRead } from "@/lib/auth/permissions";
+import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
+import { getPostgresConnectionString } from "@/lib/metadata/postgres";
+import type { ProjectsOverview } from "@/lib/metadata/metadata-store";
+import type { StatusCard } from "@/lib/trackinghub/types";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+async function loadProjectsOverview() {
+  if (!getPostgresConnectionString()) {
+    return null;
+  }
+
+  const user = await getCurrentUserFromCookieHeader(
+    (await headers()).get("cookie"),
+  );
+  if (!user) {
+    redirect("/login");
+  }
+
+  assertCanRead(user);
+
+  return defaultMetadataStore.listProjectsOverview();
+}
+
+async function loadAnalyticsData() {
+  const client = createClickHouseAnalyticsClientFromEnv();
+
+  if (!client) {
+    return null;
+  }
+
+  try {
+    return await client.loadAnalytics();
+  } catch {
+    return null;
+  }
+}
+
+function metricValue(analytics: AnalyticsData | null, label: string) {
+  return analytics?.metrics.find((metric) => metric.label === label)?.value;
+}
+
+function buildHomeStatusCards(
+  overview: ProjectsOverview | null,
+  analytics: AnalyticsData | null,
+): StatusCard[] {
+  const activeProjects = overview?.projects.filter(
+    (project) => project.status === "active",
+  ).length;
+  const enabledEnvironments = overview?.environments.filter(
+    (environment) => environment.enabled,
+  ).length;
+  const activeUsers = metricValue(analytics, "活跃用户");
+  const eventCount = metricValue(analytics, "事件量");
+  const anomalyRate = metricValue(analytics, "异常占比");
+
+  return [
+    {
+      label: "活跃项目",
+      value: activeProjects === undefined ? "0" : String(activeProjects),
+      detail:
+        enabledEnvironments === undefined
+          ? "未配置 Postgres 元数据源"
+          : `${enabledEnvironments} 个环境已启用`,
+      tone: "blue",
+    },
+    {
+      label: "活跃用户",
+      value: activeUsers ?? "暂无",
+      detail: analytics ? "最近 7 天去重用户" : "未连接 ClickHouse",
+      tone: "green",
+    },
+    {
+      label: "事件量",
+      value: eventCount ?? "暂无",
+      detail: analytics ? "最近 7 天接收事件" : "未连接 ClickHouse",
+      tone: "purple",
+    },
+    {
+      label: "异常占比",
+      value: anomalyRate ?? "暂无",
+      detail: analytics ? "来自真实验证结果" : "未连接 ClickHouse",
+      tone: "red",
+    },
+  ];
+}
+
+export default async function Home() {
+  const [overview, analytics] = await Promise.all([
+    loadProjectsOverview(),
+    loadAnalyticsData(),
+  ]);
+  const statusCards = buildHomeStatusCards(overview, analytics);
+
   return (
     <AppShell activeHref="/">
       <PageHeader
@@ -39,9 +132,8 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <AcceptanceTable items={acceptanceItems} />
-        <CodexSummaryCard items={reportItems} />
+      <div className="mt-6 rounded-lg border border-dashed border-border p-6 text-sm leading-6 text-muted-foreground">
+        首页仅展示已连接数据源的聚合状态；项目、治理、分析和报告明细请进入对应页面查看。
       </div>
     </AppShell>
   );

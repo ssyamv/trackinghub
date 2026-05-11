@@ -33,11 +33,6 @@ describe("evaluateHealth", () => {
         status: "ok",
         message: "事件持久化保护已满足",
       },
-      {
-        name: "sampleData",
-        status: "ok",
-        message: "当前环境不会回显占位数据",
-      },
     ]);
   });
 
@@ -89,7 +84,7 @@ describe("evaluateHealth", () => {
     });
   });
 
-  it("keeps local sample mode off unless explicitly enabled", async () => {
+  it("reports local missing dependencies as clean empty-state warnings", async () => {
     const health = await evaluateHealth({
       env: {
         NODE_ENV: "development",
@@ -100,27 +95,9 @@ describe("evaluateHealth", () => {
 
     expect(health.status).toBe("degraded");
     expect(health.checks).toContainEqual({
-      name: "sampleData",
-      status: "ok",
-      message: "当前环境不会回显占位数据",
-    });
-  });
-
-  it("allows sample mode only with explicit opt-in", async () => {
-    const health = await evaluateHealth({
-      env: {
-        NODE_ENV: "development",
-        TRACKINGHUB_ALLOW_SAMPLE_DATA: "true",
-      },
-      pingPostgres: async () => true,
-      pingClickHouse: async () => true,
-    });
-
-    expect(health.status).toBe("degraded");
-    expect(health.checks).toContainEqual({
-      name: "sampleData",
+      name: "postgres",
       status: "warning",
-      message: "当前环境允许回显占位数据",
+      message: "本地未配置 Postgres，将显示空状态",
     });
   });
 });

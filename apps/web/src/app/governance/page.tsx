@@ -8,31 +8,62 @@ import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
 import { getPostgresConnectionString } from "@/lib/metadata/postgres";
 import { mapGovernanceOverviewToWorkbench } from "@/lib/trackinghub/governance-api";
 import { headers } from "next/headers";
-import {
-  editableEventDefinitions,
-  eventDictionaryItems,
-  featuredEventDetail,
-  governanceAcceptanceChecks,
-  governanceSummaryCards,
-  pageShells,
-} from "@/lib/trackinghub/sample-data";
+import { redirect } from "next/navigation";
+import { pageShells } from "@/lib/trackinghub/page-shells";
 
 export const dynamic = "force-dynamic";
 
 async function getGovernanceWorkbench() {
   if (!getPostgresConnectionString()) {
     return {
-      summaryCards: governanceSummaryCards,
-      events: eventDictionaryItems,
-      eventDetail: featuredEventDetail,
-      acceptanceChecks: governanceAcceptanceChecks,
-      editableDefinitions: editableEventDefinitions,
+      summaryCards: [
+        {
+          label: "治理事件",
+          value: "0",
+          detail: "未配置 Postgres 事件字典",
+          tone: "blue" as const,
+        },
+        {
+          label: "待验收",
+          value: "0",
+          detail: "未读取到真实事件定义",
+          tone: "green" as const,
+        },
+        {
+          label: "Schema 异常",
+          value: "0",
+          detail: "未读取到真实验证结果",
+          tone: "red" as const,
+        },
+        {
+          label: "最近接收",
+          value: "暂无",
+          detail: "未读取到真实样本",
+          tone: "purple" as const,
+        },
+      ],
+      events: [],
+      eventDetail: {
+        eventName: "暂无事件",
+        displayName: "暂无事件",
+        businessGoal: "连接 Postgres 后展示真实事件定义。",
+        triggerTiming: "连接 Postgres 后展示触发时机。",
+        platforms: [],
+        requiredProperties: [],
+        recentSamples: [],
+      },
+      acceptanceChecks: [],
+      editableDefinitions: [],
     };
   }
 
   const user = await getCurrentUserFromCookieHeader(
     (await headers()).get("cookie"),
   );
+  if (!user) {
+    redirect("/login");
+  }
+
   assertCanRead(user);
 
   return mapGovernanceOverviewToWorkbench(

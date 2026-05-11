@@ -1,11 +1,8 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -14,8 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
-import { navItems, timelineItems } from "@/lib/trackinghub/sample-data";
+import { navItems } from "@/lib/trackinghub/navigation";
 
 function normalizeHref(href: string) {
   if (href === "/") {
@@ -50,28 +46,7 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
           <span className="text-base font-bold tracking-normal text-sidebar-foreground">
             TrackingHub
           </span>
-          <Badge variant="secondary">MVP</Badge>
         </Link>
-
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3">
-          <p className="text-xs font-medium text-sidebar-foreground/70">
-            当前项目
-          </p>
-          <div className="mt-2 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                Magic Frame
-              </p>
-              <p className="mt-1 text-xs leading-5 text-sidebar-foreground/70">
-                生产数据流正常
-              </p>
-            </div>
-            <span
-              aria-hidden="true"
-              className="mt-1 size-2 rounded-full bg-chart-2"
-            />
-          </div>
-        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -105,32 +80,6 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 py-4">
-        <Separator className="mb-4 bg-sidebar-border" />
-        <div>
-          <p className="text-xs font-semibold text-sidebar-foreground/70">
-            当前批次
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {timelineItems.map((item) => (
-              <div
-                key={item.label}
-                className={cn(
-                  "rounded-md border border-sidebar-border p-2",
-                  item.active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "bg-sidebar text-sidebar-foreground/70"
-                )}
-              >
-                <p className="text-xs">{item.label}</p>
-                <p className="mt-1 text-lg font-bold leading-none tracking-normal">
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

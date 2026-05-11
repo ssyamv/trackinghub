@@ -8,11 +8,8 @@ import {
   shouldGenerateDailyReportDraft,
 } from "@/lib/reports/report-draft";
 import { loadReportPreviewData } from "@/lib/reports/report-preview";
-import {
-  pageShells,
-  reportTaskItems,
-  reportTemplateItems,
-} from "@/lib/trackinghub/sample-data";
+import { pageShells } from "@/lib/trackinghub/page-shells";
+import { reportTemplateItems } from "@/lib/trackinghub/report-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +41,6 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           dailyDraft={dailyDraft}
           dailyDraftHref={buildDailyReportDraftHref(preview)}
           preview={preview}
-          tasks={reportTaskItems}
           templates={reportTemplateItems}
         />
       </div>

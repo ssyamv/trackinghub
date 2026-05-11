@@ -2,7 +2,7 @@ import { AppShell } from "@/components/trackinghub/app-shell";
 import { EmptyPageState } from "@/components/trackinghub/empty-page-state";
 import { PageHeader } from "@/components/trackinghub/page-header";
 import { Button } from "@/components/ui/button";
-import type { PageShell as PageShellData } from "@/lib/trackinghub/sample-data";
+import type { PageShell as PageShellData } from "@/lib/trackinghub/types";
 
 export function PageShell({
   activeHref,

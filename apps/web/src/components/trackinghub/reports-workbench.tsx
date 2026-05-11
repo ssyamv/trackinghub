@@ -21,45 +21,27 @@ import {
 } from "@/lib/reports/report-draft";
 import type { ReportPreviewData } from "@/lib/reports/report-preview";
 import type {
-  ReportTaskItem,
   ReportTemplateItem,
-} from "@/lib/trackinghub/sample-data";
+} from "@/lib/trackinghub/types";
 
 import { MetricCard } from "./metric-card";
 import { SaveReportButton } from "./save-report-button";
-import { StatusBadge } from "./status-badge";
-
-function taskTone(status: string) {
-  if (status === "已排队") {
-    return "success" as const;
-  }
-
-  if (status === "待确认") {
-    return "warning" as const;
-  }
-
-  return "danger" as const;
-}
 
 export function ReportsWorkbench({
   dailyDraft,
   dailyDraftHref,
   preview,
   templates,
-  tasks,
 }: {
   dailyDraft?: DailyReportDraft | null;
   dailyDraftHref: string;
   preview: ReportPreviewData;
   templates: ReportTemplateItem[];
-  tasks: ReportTaskItem[];
 }) {
   const sourceLabel =
     preview.source === "clickhouse"
       ? "已连接真实 ClickHouse 数据"
-      : preview.source === "sample"
-        ? "当前显示占位报告数据"
-        : "真实数据源不可用";
+      : "真实数据源不可用";
   const sourceDescription =
     preview.source === "unavailable"
       ? "当前环境未读取到真实数据，请配置 ClickHouse 后再生成报告。"
@@ -89,9 +71,7 @@ export function ReportsWorkbench({
             variant={
               preview.source === "clickhouse"
                 ? "default"
-                : preview.source === "unavailable"
-                  ? "destructive"
-                  : "outline"
+                : "destructive"
             }
           >
             {sourceLabel}
@@ -272,7 +252,7 @@ export function ReportsWorkbench({
         </Card>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl tracking-normal">报告模板</CardTitle>
@@ -304,35 +284,6 @@ export function ReportsWorkbench({
                       {input}
                     </span>
                   ))}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl tracking-normal">Codex 任务队列</CardTitle>
-            <CardDescription>
-              管理日报、异常解释和漏斗掉点解释的生成状态。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {tasks.map((task) => (
-              <div
-                className="rounded-lg border border-border bg-background p-4"
-                key={task.title}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold">{task.title}</div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {task.owner} · {task.schedule}
-                    </div>
-                  </div>
-                  <StatusBadge tone={taskTone(task.status)}>
-                    {task.status}
-                  </StatusBadge>
                 </div>
               </div>
             ))}

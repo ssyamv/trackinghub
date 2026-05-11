@@ -7,16 +7,10 @@ import {
   normalizeAnalyticsFilters,
 } from "@/lib/analytics/clickhouse-analytics";
 import {
-  analyticsFunnelSteps,
-  analyticsTrendItems,
   type AnalyticsFunnelStep,
   type AnalyticsTrendItem,
   type StatusCard,
-} from "@/lib/trackinghub/sample-data";
-import {
-  allowsSampleData,
-  type RuntimeEnv,
-} from "@/lib/runtime/sample-data-policy";
+} from "@/lib/trackinghub/types";
 
 export type ReportFunnelDropoff = {
   fromStep: string;
@@ -40,33 +34,7 @@ export type ReportPreviewData = {
 type ReportPreviewOptions = {
   filters?: AnalyticsFilterInput;
   client?: ClickHouseAnalyticsClient | null;
-  env?: RuntimeEnv;
-};
-
-const fallbackReportAnalytics: AnalyticsData = {
-  source: "sample",
-  metrics: [
-    {
-      label: "事件量",
-      value: "2.7m",
-      detail: "示例报告模板：最近 7 天核心事件",
-      tone: "blue",
-    },
-    {
-      label: "活跃用户",
-      value: "18.4k",
-      detail: "示例报告模板：最近 7 天去重用户",
-      tone: "green",
-    },
-    {
-      label: "异常占比",
-      value: "3.4%",
-      detail: "示例报告模板：Schema 与流量异常占比",
-      tone: "red",
-    },
-  ],
-  trendItems: analyticsTrendItems,
-  funnelSteps: analyticsFunnelSteps,
+  env?: Record<string, string | undefined>;
 };
 
 const unavailableReportAnalytics: AnalyticsData = {
@@ -158,26 +126,18 @@ function buildReportPreviewData(
 export async function loadReportPreviewData({
   filters: inputFilters,
   client,
-  env,
 }: ReportPreviewOptions = {}): Promise<ReportPreviewData> {
   const filters = normalizeAnalyticsFilters(inputFilters);
   const analyticsClient = client ?? createClickHouseAnalyticsClientFromEnv();
-  const sampleDataAllowed = allowsSampleData(env);
 
   if (!analyticsClient) {
-    return buildReportPreviewData(
-      sampleDataAllowed ? fallbackReportAnalytics : unavailableReportAnalytics,
-      filters,
-    );
+    return buildReportPreviewData(unavailableReportAnalytics, filters);
   }
 
   try {
     const analytics = await analyticsClient.loadAnalytics(filters);
     return buildReportPreviewData(analytics, filters);
   } catch {
-    return buildReportPreviewData(
-      sampleDataAllowed ? fallbackReportAnalytics : unavailableReportAnalytics,
-      filters,
-    );
+    return buildReportPreviewData(unavailableReportAnalytics, filters);
   }
 }

@@ -68,13 +68,9 @@ TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true
 
 ## 分析查询配置
 
-`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`funnel_steps`、`range=7d|30d` 和 `granularity=day|hour`。`project_id` 使用 Postgres 项目 UUID。`funnel_steps` 使用英文逗号分隔事件名；未提供或不足 2 步时回到默认商业化漏斗。
+`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`funnel_steps`、`range=7d|30d` 和 `granularity=day|hour`。`project_id` 使用 Postgres 项目 UUID。`funnel_steps` 使用英文逗号分隔事件名；未提供或不足 2 步时不计算漏斗。
 
-分析与报告页默认不回显占位数据；当 ClickHouse 不可用时，页面会显示“真实数据源不可用”。只有需要本地占位预览时才显式设置：
-
-```bash
-TRACKINGHUB_ALLOW_SAMPLE_DATA=true
-```
+分析、报告和首页不回显占位数据；当 ClickHouse 不可用时，页面会显示“真实数据源不可用”或空状态。
 
 ## 报告持久化
 

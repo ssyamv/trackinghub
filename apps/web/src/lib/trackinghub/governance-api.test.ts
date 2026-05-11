@@ -8,7 +8,7 @@ describe("governance api mapper", () => {
         {
           id: "event_1",
           projectId: "project_1",
-          projectName: "Magic Frame",
+          projectName: "正式项目 A",
           name: "pay_button_click",
           displayName: "支付按钮点击",
           description: "点击支付按钮",
@@ -33,7 +33,7 @@ describe("governance api mapper", () => {
 
     expect(result.events[0]).toMatchObject({
       eventName: "pay_button_click",
-      project: "Magic Frame",
+      project: "正式项目 A",
       platforms: "Web + Flutter",
       status: "待验收",
     });
@@ -47,7 +47,7 @@ describe("governance api mapper", () => {
         {
           id: "event_project_a",
           projectId: "project_a",
-          projectName: "Magic Frame",
+          projectName: "正式项目 A",
           name: "pay_button_click",
           displayName: "支付按钮点击",
           description: "点击支付按钮",
@@ -62,7 +62,7 @@ describe("governance api mapper", () => {
         {
           id: "event_project_b",
           projectId: "project_b",
-          projectName: "Homture",
+          projectName: "正式项目 B",
           name: "pay_button_click",
           displayName: "支付按钮点击",
           description: "官网支付按钮点击",
@@ -93,7 +93,7 @@ describe("governance api mapper", () => {
         {
           id: "event_1",
           projectId: "project_1",
-          projectName: "Magic Frame",
+          projectName: "正式项目 A",
           name: "photo_shared",
           displayName: "图片分享",
           description: "用户分享图片",

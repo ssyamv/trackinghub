@@ -1,16 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  DEFAULT_FUNNEL_EVENTS,
-  createClickHouseAnalyticsClientFromEnv,
-} from "./clickhouse-analytics";
+import { createClickHouseAnalyticsClientFromEnv } from "./clickhouse-analytics";
 
 describe("createClickHouseAnalyticsClientFromEnv", () => {
   it("returns null when ClickHouse is not configured", () => {
     expect(createClickHouseAnalyticsClientFromEnv({})).toBeNull();
   });
 
-  it("loads overview, trend, and funnel analytics from ClickHouse", async () => {
+  it("loads overview and trend analytics without defaulting to fake funnel steps", async () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     const responses = [
       [
@@ -31,11 +28,6 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
           unique_users: "88",
         },
       ],
-      DEFAULT_FUNNEL_EVENTS.map((eventName, index) => ({
-        step: String(index + 1),
-        event_name: eventName,
-        users: String(100 - index * 20),
-      })),
     ];
 
     const client = createClickHouseAnalyticsClientFromEnv(
@@ -95,39 +87,13 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
           uniqueUsers: "88",
         },
       ],
-      funnelSteps: [
-        {
-          step: "1",
-          eventName: "product_detail_view",
-          users: "100",
-          conversion: "100%",
-        },
-        {
-          step: "2",
-          eventName: "pay_button_click",
-          users: "80",
-          conversion: "80.0%",
-        },
-        {
-          step: "3",
-          eventName: "checkout_submit",
-          users: "60",
-          conversion: "60.0%",
-        },
-        {
-          step: "4",
-          eventName: "subscription_success",
-          users: "40",
-          conversion: "40.0%",
-        },
-      ],
+      funnelSteps: [],
     });
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(3);
     expect(requests[0].url).toContain("database=trackinghub");
     expect(requests[0].url).toContain("FROM+raw_events");
     expect(requests[1].url).toContain("FROM+event_validation_results");
     expect(requests[2].url).toContain("GROUP+BY+bucket%2C+event_name");
-    expect(requests[3].url).toContain("product_detail_view");
     expect(requests[0].init?.headers).toMatchObject({
       Authorization: "Basic cmVhZGVyOnNlY3JldA==",
     });
@@ -138,7 +104,6 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     const responses = [
       [{ event_count: "42", active_users: "9", last_received_at: "" }],
       [{ validation_count: "4", invalid_count: "1" }],
-      [],
       [],
     ];
 
@@ -183,9 +148,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     expect(decodedQueries[1]).toContain("project_id = 'project_a'");
     expect(decodedQueries[2]).toContain("toStartOfHour(timestamp) AS bucket");
     expect(decodedQueries[2]).toContain("event_name = 'pay_button_click'");
-    expect(decodedQueries[3]).toContain("project_id = 'project_a'");
-    expect(decodedQueries[3]).toContain("environment = 'prod'");
-    expect(decodedQueries[3]).toContain("source = 'web'");
+    expect(requests).toHaveLength(3);
   });
 
   it("uses configurable funnel steps from URL filters", async () => {

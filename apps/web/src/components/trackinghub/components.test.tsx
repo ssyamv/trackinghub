@@ -3,27 +3,19 @@ import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
 import type { DailyReportDraft } from "@/lib/reports/report-draft";
 import type { ReportPreviewData } from "@/lib/reports/report-preview";
-import type { AcceptanceItem } from "@/lib/trackinghub/sample-data";
-import {
-  acceptanceItems,
-  analyticsFunnelSteps,
-  analyticsMetricCards,
-  analyticsTemplateItems,
-  eventDictionaryItems,
-  featuredEventDetail,
-  governanceAcceptanceChecks,
-  governanceSummaryCards,
-  projectEnvironmentItems,
-  projectItems,
-  projectSummaryCards,
-  reportTaskItems,
-  reportTemplateItems,
-  reportItems,
-  sdkKeyItems,
-} from "@/lib/trackinghub/sample-data";
-import { AcceptanceTable } from "./acceptance-table";
+import { analyticsTemplateItems } from "@/lib/trackinghub/analytics-templates";
+import { reportTemplateItems } from "@/lib/trackinghub/report-templates";
+import type {
+  AnalyticsFunnelStep,
+  EventDictionaryItem,
+  FeaturedEventDetail,
+  GovernanceAcceptanceCheck,
+  ProjectEnvironmentItem,
+  ProjectItem,
+  SdkKeyItem,
+  StatusCard,
+} from "@/lib/trackinghub/types";
 import { AnalyticsWorkbench } from "./analytics-workbench";
-import { CodexSummaryCard } from "./codex-summary-card";
 import { EmptyPageState } from "./empty-page-state";
 import { GovernanceWorkbench } from "./governance-workbench";
 import { LoginForm } from "./login-form";
@@ -32,6 +24,107 @@ import { PageHeader } from "./page-header";
 import { ProjectManagementWorkbench } from "./project-management-workbench";
 import { ReportsWorkbench } from "./reports-workbench";
 import { StatusBadge } from "./status-badge";
+
+const governanceSummaryCards: StatusCard[] = [
+  { label: "治理事件", value: "1", detail: "来自 Postgres 事件字典", tone: "blue" },
+];
+
+const eventDictionaryItems: EventDictionaryItem[] = [
+  {
+    id: "photo_shared",
+    eventName: "photo_shared",
+    displayName: "照片分享",
+    project: "正式项目",
+    platforms: "Web",
+    environment: "按环境验证",
+    owner: "增长",
+    status: "待验收",
+    statusTone: "warning",
+    lastSeen: "暂无",
+  },
+];
+
+const featuredEventDetail: FeaturedEventDetail = {
+  eventName: "photo_shared",
+  displayName: "照片分享",
+  businessGoal: "验证真实事件定义展示。",
+  triggerTiming: "用户分享照片时触发。",
+  platforms: ["Web"],
+  requiredProperties: [
+    {
+      name: "photo_id",
+      type: "string",
+      description: "照片 ID。",
+      example: "photo_1",
+    },
+  ],
+};
+
+const governanceAcceptanceChecks: GovernanceAcceptanceCheck[] = [
+  {
+    label: "photo_shared / invalid",
+    detail: "channel is required",
+    tone: "danger",
+  },
+];
+
+const projectSummaryCards: StatusCard[] = [
+  { label: "项目总数", value: "1", detail: "来自 Postgres 元数据", tone: "blue" },
+];
+
+const projectItems: ProjectItem[] = [
+  {
+    name: "正式项目",
+    slug: "official-project",
+    description: "来自真实元数据的项目。",
+    platforms: "Web",
+    status: "运行中",
+    owner: "产品",
+    events: "等待事件字典关联",
+  },
+];
+
+const projectEnvironmentItems: ProjectEnvironmentItem[] = [
+  {
+    project: "正式项目",
+    name: "prod",
+    enabled: true,
+    lastEventAt: "暂无",
+    writeKeyStatus: "启用",
+  },
+];
+
+const sdkKeyItems: SdkKeyItem[] = [
+  {
+    id: "sdk_key_real_prod_web",
+    project: "正式项目",
+    environment: "prod",
+    source: "Web",
+    maskedKey: "write_key_••••91",
+    status: "启用",
+    lastUsed: "暂无",
+  },
+];
+
+const analyticsMetricCards: StatusCard[] = [
+  { label: "事件量", value: "120", detail: "最近 7 天接收事件", tone: "blue" },
+  { label: "活跃用户", value: "88", detail: "最近 7 天去重用户", tone: "green" },
+];
+
+const analyticsFunnelSteps: AnalyticsFunnelStep[] = [
+  {
+    step: "1",
+    eventName: "product_detail_view",
+    users: "100",
+    conversion: "100%",
+  },
+  {
+    step: "2",
+    eventName: "pay_button_click",
+    users: "80",
+    conversion: "80.0%",
+  },
+];
 
 describe("TrackingHub components", () => {
   it("renders a page header with actions", () => {
@@ -63,16 +156,16 @@ describe("TrackingHub components", () => {
   it("renders a metric card value and detail", () => {
     const html = renderToStaticMarkup(
       <MetricCard
-        label="今日事件量"
-        value="2.7m"
-        detail="p95 写入延迟 1.8s"
+        label="事件量"
+        value="120"
+        detail="最近 7 天接收事件"
         tone="purple"
       />,
     );
 
-    expect(html).toContain("今日事件量");
-    expect(html).toContain("2.7m");
-    expect(html).toContain("p95 写入延迟 1.8s");
+    expect(html).toContain("事件量");
+    expect(html).toContain("120");
+    expect(html).toContain("最近 7 天接收事件");
     expect(html).toContain('data-slot="card"');
     expect(html).toContain("bg-chart-4/20");
   });
@@ -99,49 +192,6 @@ describe("TrackingHub components", () => {
 });
 
 describe("TrackingHub dashboard components", () => {
-  it("renders acceptance rows", () => {
-    const html = renderToStaticMarkup(
-      <AcceptanceTable items={acceptanceItems} />,
-    );
-
-    expect(html).toContain("pay_button_click");
-    expect(html).toContain("Flutter 缺少国家字段");
-    expect(html).toContain("移动端待验收埋点列表");
-    expect(html).toContain("md:hidden");
-  });
-
-  it("allows long event names to wrap without hiding environment or status", () => {
-    const longEventItems: AcceptanceItem[] = [
-      {
-        event:
-          "subscription_checkout_payment_button_click_from_mobile_campaign_detail_sheet",
-        project: "Magic Frame",
-        source: "Flutter",
-        environment: "生产",
-        status: "Schema 不一致",
-        tone: "danger",
-      },
-    ];
-
-    const html = renderToStaticMarkup(
-      <AcceptanceTable items={longEventItems} />,
-    );
-
-    expect(html).toContain("whitespace-normal");
-    expect(html).toContain(
-      "subscription_checkout_payment_button_click_from_mobile_campaign_detail_sheet",
-    );
-    expect(html).toContain("生产");
-    expect(html).toContain("Schema 不一致");
-  });
-
-  it("renders Codex summary report items", () => {
-    const html = renderToStaticMarkup(<CodexSummaryCard items={reportItems} />);
-
-    expect(html).toContain("分析摘要");
-    expect(html).toContain("spring_sale 活动转化率提升 12.4%");
-  });
-
   it("renders the governance workbench with dictionary, detail, and acceptance checks", () => {
     const html = renderToStaticMarkup(
       <GovernanceWorkbench
@@ -168,9 +218,9 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("事件字典");
     expect(html).toContain("重点事件");
     expect(html).toContain("验收检查");
-    expect(html).toContain("pay_button_click");
-    expect(html).toContain("product_id");
-    expect(html).toContain("Schema 不一致");
+    expect(html).toContain("photo_shared");
+    expect(html).toContain("photo_id");
+    expect(html).toContain("channel is required");
     expect(html).toContain("最近样本");
     expect(html).toContain("channel is required");
     expect(html).toContain('data-slot="table"');
@@ -189,9 +239,9 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("项目列表");
     expect(html).toContain("环境配置");
     expect(html).toContain("SDK Key 状态");
-    expect(html).toContain("Magic Frame");
+    expect(html).toContain("正式项目");
     expect(html).toContain("prod");
-    expect(html).toContain("write_key_live_••••91");
+    expect(html).toContain("write_key_••••91");
   });
 
   it("renders analytics templates for overview, trend, funnel, and retention", () => {
@@ -209,7 +259,7 @@ describe("TrackingHub dashboard components", () => {
         }}
         funnelSteps={analyticsFunnelSteps}
         metrics={analyticsMetricCards}
-        source="sample"
+        source="clickhouse"
         templates={analyticsTemplateItems}
         trendItems={[
           {
@@ -225,7 +275,7 @@ describe("TrackingHub dashboard components", () => {
     );
 
     expect(html).toContain("分析模板");
-    expect(html).toContain("当前显示占位数据");
+    expect(html).toContain("已连接真实 ClickHouse 数据");
     expect(html).toContain("项目 ID");
     expect(html).toContain('name="environment"');
     expect(html).toContain('name="source"');
@@ -238,7 +288,7 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("pay_button_click");
     expect(html).toContain("唯一用户");
     expect(html).toContain("漏斗步骤");
-    expect(html).toContain("D7 留存");
+    expect(html).toContain("留存");
   });
 
   it("renders an explicit analytics unavailable state", () => {
@@ -268,7 +318,7 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("当前筛选范围暂无漏斗数据。");
   });
 
-  it("renders report templates, report preview data, and Codex task queue", () => {
+  it("renders report templates and report preview data", () => {
     const draft: DailyReportDraft = {
       title: "magic_frame / prod / web 日报草稿",
       summary: "最近 7 天内，事件量 2.7k，活跃用户 184，异常占比 15.0%。",
@@ -360,7 +410,6 @@ describe("TrackingHub dashboard components", () => {
         dailyDraft={draft}
         dailyDraftHref="/reports?report_action=daily_draft"
         preview={preview}
-        tasks={reportTaskItems}
         templates={reportTemplateItems}
       />,
     );
@@ -382,7 +431,6 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("product_detail_view");
     expect(html).toContain("20.0%");
     expect(html).toContain("报告模板");
-    expect(html).toContain("Codex 任务队列");
     expect(html).toContain("异常解释");
     expect(html).toContain("漏斗掉点解释");
   });
