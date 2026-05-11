@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_ROOT="${TRACKINGHUB_BACKUP_DIR:-"$ROOT_DIR/.trackinghub-backups"}"
 TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
+
 BACKUP_DIR="${1:-"$BACKUP_ROOT/$TIMESTAMP"}"
 
 cd "$ROOT_DIR"

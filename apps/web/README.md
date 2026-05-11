@@ -75,6 +75,14 @@ pnpm run verify:backup
 
 验证脚本会检查 manifest 校验和、Postgres dump 可读性、Postgres schema 和 ClickHouse schema 文件。也可以传入指定备份目录：`pnpm run verify:backup -- .trackinghub-backups/<timestamp>`。
 
+需要确认备份可以恢复时，执行隔离恢复演练：
+
+```bash
+pnpm run drill:backup
+```
+
+演练脚本会在当前 compose 的 Postgres 和 ClickHouse 中创建临时 restore 数据库，恢复备份数据并校验 manifest 中的项目、事件定义、raw events 和验证结果计数，结束后自动删除临时数据库。也可以传入指定备份目录：`pnpm run drill:backup -- .trackinghub-backups/<timestamp>`。
+
 ## 事件写入配置
 
 `POST /api/events` 校验通过后会写入 ClickHouse `raw_events`。本地未配置 ClickHouse 时使用空写入器，便于 UI 与 SDK 开发。

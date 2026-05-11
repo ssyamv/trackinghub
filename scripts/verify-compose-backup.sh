@@ -15,6 +15,10 @@ find_latest_backup() {
     | xargs dirname
 }
 
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
+
 BACKUP_DIR="${1:-}"
 if [[ -z "$BACKUP_DIR" ]]; then
   BACKUP_DIR="$(find_latest_backup || true)"

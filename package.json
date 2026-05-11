@@ -12,6 +12,7 @@
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "backup:compose": "bash scripts/backup-compose-data.sh",
     "verify:backup": "bash scripts/verify-compose-backup.sh",
+    "drill:backup": "bash scripts/drill-compose-backup-restore.sh",
     "monitor:compose": "node scripts/monitor-compose-runtime.mjs"
   },
   "pnpm": {
