@@ -6,7 +6,8 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/web-sdk/package.json packages/web-sdk/package.json
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=trackinghub-pnpm-store,target=/pnpm/store \
+  pnpm config set store-dir /pnpm/store && pnpm install --frozen-lockfile
 
 FROM deps AS builder
 
