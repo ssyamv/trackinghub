@@ -7,6 +7,7 @@ coverage/
 .superpowers/
 .worktrees/
 .trackinghub-backups/
+.trackinghub-artifacts/
 
 .env
 .env.*
