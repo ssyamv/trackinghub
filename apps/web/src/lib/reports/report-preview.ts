@@ -67,6 +67,7 @@ const unavailableReportAnalytics: AnalyticsData = {
   retentionItems: [],
   propertyItems: [],
   propertyKeyCount: 0,
+  dimensionGroups: [],
 };
 
 function pickReportMetrics(metrics: StatusCard[]): StatusCard[] {
