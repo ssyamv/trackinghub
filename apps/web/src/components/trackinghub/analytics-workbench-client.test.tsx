@@ -45,6 +45,23 @@ describe("AnalyticsWorkbench client refresh", () => {
                 },
               ],
               funnelSteps: [],
+              dimensionGroups: [
+                {
+                  key: "app_version",
+                  label: "App 版本",
+                  items: [
+                    {
+                      eventCount: "624",
+                      eventCountValue: 624,
+                      share: "62.4%",
+                      shareValue: 0.624,
+                      uniqueUsers: "320",
+                      uniqueUsersValue: 320,
+                      value: "1.5.1",
+                    },
+                  ],
+                },
+              ],
               propertyKeyCount: 0,
               propertyItems: [],
             },
@@ -80,6 +97,23 @@ describe("AnalyticsWorkbench client refresh", () => {
             range: "30d",
           }}
           funnelSteps={[]}
+          dimensionGroups={[
+            {
+              key: "country",
+              label: "用户地区",
+              items: [
+                {
+                  eventCount: "480",
+                  eventCountValue: 480,
+                  share: "48.0%",
+                  shareValue: 0.48,
+                  uniqueUsers: "240",
+                  uniqueUsersValue: 240,
+                  value: "US",
+                },
+              ],
+            },
+          ]}
           metrics={[
             {
               detail: "初始事件量",
@@ -102,6 +136,10 @@ describe("AnalyticsWorkbench client refresh", () => {
     expect(document.body.textContent).not.toContain("核心漏斗");
     expect(document.body.textContent).not.toContain("日报口径");
     expect(document.body.textContent).toContain("自定义");
+    expect(document.body.textContent).toContain("用户分布");
+    expect(document.body.textContent).toContain("用户地区");
+    expect(document.body.textContent).toContain("US");
+    expect(document.body.textContent).toContain("48.0%");
 
     const environmentSelect = document.querySelector(
       'select[name="environment"]',
@@ -150,6 +188,9 @@ describe("AnalyticsWorkbench client refresh", () => {
       "/analytics?environment=prod&range=30d&granularity=hour&date_from=2026-05-01&date_to=2026-05-11",
     );
     expect(document.body.textContent).toContain("999");
+    expect(document.body.textContent).toContain("App 版本");
+    expect(document.body.textContent).toContain("1.5.1");
+    expect(document.body.textContent).toContain("62.4%");
     expect(document.body.textContent).not.toContain("局部刷新失败");
   });
 });

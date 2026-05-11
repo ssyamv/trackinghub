@@ -30,6 +30,7 @@ async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
     trendItems: [],
     propertyItems: [],
     propertyKeyCount: 0,
+    dimensionGroups: [],
   };
   const client = createClickHouseAnalyticsClientFromEnv();
 
@@ -78,6 +79,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       />
       <div className="mt-6">
         <AnalyticsWorkbench
+          dimensionGroups={workbench.dimensionGroups}
           filters={filters}
           funnelSteps={workbench.funnelSteps}
           metrics={workbench.metrics}

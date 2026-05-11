@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
+  AnalyticsDimensionGroup,
   AnalyticsFunnelStep,
   AnalyticsPropertyValueItem,
   AnalyticsTrendItem,
@@ -106,6 +107,7 @@ type AnalyticsWorkbenchData = Pick<
   | "metrics"
   | "trendItems"
   | "funnelSteps"
+  | "dimensionGroups"
   | "propertyItems"
   | "propertyKeyCount"
 >;
@@ -447,7 +449,69 @@ function PropertyAnalysis({
   );
 }
 
+function DimensionDistribution({
+  groups,
+}: {
+  groups: AnalyticsDimensionGroup[];
+}) {
+  const visibleGroups = groups.filter((group) => group.items.length > 0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl tracking-normal">用户分布</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {visibleGroups.length > 0 ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {visibleGroups.map((group) => (
+              <div
+                className="rounded-lg border border-border bg-card p-4"
+                key={group.key}
+              >
+                <div className="text-sm font-semibold">{group.label}</div>
+                <div className="mt-4 grid gap-3">
+                  {group.items.map((item) => (
+                    <div className="grid gap-1.5" key={item.value}>
+                      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <span className="min-w-0 truncate font-mono text-xs font-semibold">
+                          {item.value}
+                        </span>
+                        <span className="font-semibold">{item.share}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span>事件 {item.eventCount}</span>
+                        <span>用户 {item.uniqueUsers}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-chart-4"
+                          style={{
+                            width: `${Math.max(
+                              item.shareValue > 0 ? 3 : 0,
+                              Math.min(100, item.shareValue * 100),
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+            当前筛选范围暂无用户分布数据。
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AnalyticsWorkbench({
+  dimensionGroups = [],
   filters,
   metrics,
   funnelSteps,
@@ -456,6 +520,7 @@ export function AnalyticsWorkbench({
   trendItems,
   source,
 }: {
+  dimensionGroups: AnalyticsDimensionGroup[];
   filters: AnalyticsFilters;
   metrics: StatusCard[];
   funnelSteps: AnalyticsFunnelStep[];
@@ -470,6 +535,7 @@ export function AnalyticsWorkbench({
     filters.funnelSteps.join(", "),
   );
   const [workbenchData, setWorkbenchData] = useState<AnalyticsWorkbenchData>({
+    dimensionGroups,
     funnelSteps,
     metrics,
     propertyKeyCount,
@@ -502,6 +568,7 @@ export function AnalyticsWorkbench({
       setFormState(filtersToFormState(normalizedFilters));
       setFunnelStepsText(normalizedFilters.funnelSteps.join(", "));
       setWorkbenchData({
+        dimensionGroups: nextAnalytics.dimensionGroups,
         funnelSteps: nextAnalytics.funnelSteps,
         metrics: nextAnalytics.metrics,
         propertyKeyCount: nextAnalytics.propertyKeyCount,
@@ -782,6 +849,8 @@ export function AnalyticsWorkbench({
           )}
         </CardContent>
       </Card>
+
+      <DimensionDistribution groups={workbenchData.dimensionGroups} />
 
       <PropertyAnalysis
         eventName={activeFilters.eventName}
