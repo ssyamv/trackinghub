@@ -9,7 +9,8 @@
     "build": "pnpm --filter web build && pnpm --filter @trackinghub/web-sdk build",
     "lint": "pnpm --filter web lint && pnpm --filter @trackinghub/web-sdk lint",
     "test": "pnpm --filter web test && pnpm --filter @trackinghub/web-sdk test",
-    "check": "pnpm run lint && pnpm run test && pnpm run build"
+    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "backup:compose": "bash scripts/backup-compose-data.sh"
   },
   "pnpm": {
     "overrides": {
