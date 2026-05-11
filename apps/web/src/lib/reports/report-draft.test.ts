@@ -24,6 +24,21 @@ const preview: ReportPreviewData = {
     granularity: "day",
     range: "7d",
   },
+  dataHealth: {
+    label: "数据需复核",
+    detail: "异常占比 15.0%，建议先确认 Schema、版本或渠道变化。",
+    tone: "warning",
+  },
+  executiveSummary: [
+    "最近 7 天内，事件量 2.7k，活跃用户 184，异常占比 15.0%。",
+  ],
+  insightCards: [
+    {
+      title: "趋势入口",
+      detail: "05-10 00:00 的 pay_button_click 事件量 120，唯一用户 88。",
+      tone: "neutral",
+    },
+  ],
   metrics: [
     {
       label: "事件量",
@@ -42,6 +57,18 @@ const preview: ReportPreviewData = {
       value: "15.0%",
       detail: "3 / 20 条验证异常",
       tone: "red",
+    },
+  ],
+  trendChartItems: [
+    {
+      bucket: "05-10 00:00",
+      eventName: "pay_button_click",
+      environment: "prod",
+      source: "web",
+      eventCount: "120",
+      eventCountValue: 120,
+      uniqueUsers: "88",
+      uniqueUsersValue: 88,
     },
   ],
   trendItems: [
@@ -82,6 +109,8 @@ const preview: ReportPreviewData = {
     dropoff: "20.0%",
     conversion: "80.0%",
   },
+  retentionItems: [],
+  retentionSummary: "暂无留存数据",
 };
 
 describe("generateDailyReportDraft", () => {

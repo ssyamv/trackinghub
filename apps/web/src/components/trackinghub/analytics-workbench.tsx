@@ -112,10 +112,14 @@ type AnalyticsWorkbenchData = Pick<
   | "propertyKeyCount"
 >;
 
+type AnalyticsRefreshData = Omit<AnalyticsData, "dimensionGroups"> & {
+  dimensionGroups?: AnalyticsData["dimensionGroups"];
+};
+
 type AnalyticsApiPayload = {
   ok?: boolean;
   data?: {
-    analytics: AnalyticsData | null;
+    analytics: AnalyticsRefreshData | null;
     filters: AnalyticsFilters;
   };
   error?: {
@@ -568,7 +572,7 @@ export function AnalyticsWorkbench({
       setFormState(filtersToFormState(normalizedFilters));
       setFunnelStepsText(normalizedFilters.funnelSteps.join(", "));
       setWorkbenchData({
-        dimensionGroups: nextAnalytics.dimensionGroups,
+        dimensionGroups: nextAnalytics.dimensionGroups ?? [],
         funnelSteps: nextAnalytics.funnelSteps,
         metrics: nextAnalytics.metrics,
         propertyKeyCount: nextAnalytics.propertyKeyCount,

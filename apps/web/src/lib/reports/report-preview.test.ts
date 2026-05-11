@@ -56,6 +56,7 @@ const clickHouseAnalytics: AnalyticsData = {
   ],
   propertyItems: [],
   propertyKeyCount: 0,
+  dimensionGroups: [],
   retentionItems: [],
   funnelSteps: [
     {

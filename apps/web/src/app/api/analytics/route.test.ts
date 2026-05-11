@@ -18,6 +18,7 @@ describe("/api/analytics", () => {
               metrics: [],
               trendItems: [],
               funnelSteps: [],
+              dimensionGroups: [],
               retentionItems: [],
               propertyItems: [],
               propertyKeyCount: 0,

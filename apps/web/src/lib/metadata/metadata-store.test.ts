@@ -209,12 +209,13 @@ describe("metadata store contract", () => {
     expect(governance.definitions[0].lastSeenAt).toBe(
       "2026-05-10T07:31:00.000Z",
     );
-    expect(governance.validationResults.map((result) => result.status)).toEqual([
+    const validationResults = governance.validationResults ?? [];
+    expect(validationResults.map((result) => result.status)).toEqual([
       "unknown_event",
       "invalid",
       "valid",
     ]);
-    expect(governance.validationResults[1]).toMatchObject({
+    expect(validationResults[1]).toMatchObject({
       eventDefinitionId: definition.id,
       eventName: "photo_shared",
       errors: ["channel is required"],

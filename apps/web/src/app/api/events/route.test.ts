@@ -322,7 +322,7 @@ describe("POST /api/events", () => {
     const governance = await store.listEventDefinitions();
 
     expect(response.status).toBe(202);
-    expect(governance.validationResults[0]).toMatchObject({
+    expect(governance.validationResults?.[0]).toMatchObject({
       eventDefinitionId: definition.id,
       eventName: "photo_shared",
       status: "invalid",
@@ -343,6 +343,7 @@ describe("POST /api/events", () => {
           writeRawEvent: async () => {
             throw new Error("ClickHouse unavailable");
           },
+          writeValidationResult: async () => undefined,
         },
         createEventId: () => "event_123",
         now: () => new Date("2026-05-10T07:30:00.000Z"),

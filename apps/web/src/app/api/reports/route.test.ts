@@ -28,6 +28,7 @@ const reportAnalytics: AnalyticsData = {
   ],
   trendItems: [],
   funnelSteps: [],
+  dimensionGroups: [],
   retentionItems: [],
   propertyItems: [],
   propertyKeyCount: 0,

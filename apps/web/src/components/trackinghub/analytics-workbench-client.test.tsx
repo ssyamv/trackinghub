@@ -193,4 +193,97 @@ describe("AnalyticsWorkbench client refresh", () => {
     expect(document.body.textContent).toContain("62.4%");
     expect(document.body.textContent).not.toContain("局部刷新失败");
   });
+
+  it("falls back to an empty user distribution when refresh data omits dimension groups", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            analytics: {
+              source: "clickhouse",
+              metrics: [
+                {
+                  detail: "旧 payload 刷新后的事件量",
+                  label: "事件量",
+                  tone: "blue",
+                  value: "321",
+                },
+              ],
+              trendItems: [],
+              funnelSteps: [],
+              propertyKeyCount: 0,
+              propertyItems: [],
+            },
+            filters: {
+              funnelSteps: [],
+              granularity: "day",
+              range: "7d",
+            },
+          },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        },
+      ),
+    );
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    document.body.append(container);
+
+    await act(async () => {
+      root.render(
+        <AnalyticsWorkbench
+          dimensionGroups={[
+            {
+              key: "country",
+              label: "用户地区",
+              items: [
+                {
+                  eventCount: "480",
+                  eventCountValue: 480,
+                  share: "48.0%",
+                  shareValue: 0.48,
+                  uniqueUsers: "240",
+                  uniqueUsersValue: 240,
+                  value: "US",
+                },
+              ],
+            },
+          ]}
+          filters={{
+            funnelSteps: [],
+            granularity: "day",
+            range: "7d",
+          }}
+          funnelSteps={[]}
+          metrics={[]}
+          propertyKeyCount={0}
+          propertyItems={[]}
+          source="clickhouse"
+          trendItems={[]}
+        />,
+      );
+    });
+
+    const queryButton = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("查询"),
+    );
+    expect(queryButton).toBeTruthy();
+
+    await act(async () => {
+      queryButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain("321");
+    expect(document.body.textContent).toContain("当前筛选范围暂无用户分布数据。");
+    expect(document.body.textContent).not.toContain("局部刷新失败");
+  });
 });

@@ -12,7 +12,9 @@ const store: AuthStore = {
       ? {
           id: "user_1",
           email: "admin@example.com",
+          enabled: true,
           name: "管理员",
+          passwordHash: "hash",
           role: "admin",
         }
       : null,
@@ -20,7 +22,9 @@ const store: AuthStore = {
   updateUserProfile: async (userId, input) => ({
     id: userId,
     email: "admin@example.com",
+    enabled: true,
     name: input.name,
+    passwordHash: "hash",
     role: "admin",
   }),
 };

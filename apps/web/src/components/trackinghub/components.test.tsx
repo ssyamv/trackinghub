@@ -458,6 +458,7 @@ describe("TrackingHub dashboard components", () => {
           range: "7d",
         }}
         funnelSteps={analyticsFunnelSteps}
+        dimensionGroups={[]}
         metrics={analyticsMetricCards}
         propertyKeyCount={2}
         propertyItems={[
@@ -579,6 +580,7 @@ describe("TrackingHub dashboard components", () => {
           source: "web",
         }}
         funnelSteps={analyticsFunnelSteps}
+        dimensionGroups={[]}
         metrics={analyticsMetricCards}
         propertyKeyCount={0}
         propertyItems={[]}
@@ -611,6 +613,7 @@ describe("TrackingHub dashboard components", () => {
           range: "7d",
         }}
         funnelSteps={[]}
+        dimensionGroups={[]}
         metrics={[]}
         propertyKeyCount={0}
         propertyItems={[]}
