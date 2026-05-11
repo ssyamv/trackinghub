@@ -65,6 +65,14 @@ pnpm run backup:compose
 
 脚本会把 Postgres 自定义格式 dump、Postgres schema、ClickHouse 事件表 schema、ClickHouse JSONL 数据和 manifest 写入 `.trackinghub-backups/<timestamp>/`。备份目录默认不进入 Git；如需指定位置，可传路径或设置 `TRACKINGHUB_BACKUP_DIR`。
 
+备份完成后可执行：
+
+```bash
+pnpm run verify:backup
+```
+
+验证脚本会检查 manifest 校验和、Postgres dump 可读性、Postgres schema 和 ClickHouse schema 文件。也可以传入指定备份目录：`pnpm run verify:backup -- .trackinghub-backups/<timestamp>`。
+
 ## 事件写入配置
 
 `POST /api/events` 校验通过后会写入 ClickHouse `raw_events`。本地未配置 ClickHouse 时使用空写入器，便于 UI 与 SDK 开发。
