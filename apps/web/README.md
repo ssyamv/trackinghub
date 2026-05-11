@@ -44,7 +44,9 @@ docker compose up --build
 pnpm run monitor:compose
 ```
 
-脚本会检查 compose 三个服务、`/api/health`、Postgres 元数据基线、ClickHouse 事件数据和最近备份 manifest。生产巡检可通过 `TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS=true` 要求最近一小时必须有事件进入，通过 `TRACKINGHUB_MONITOR_REQUIRE_FRESH_BACKUP=true` 要求最近备份未超过 24 小时。
+脚本会检查 compose 三个服务、`/api/health`、Postgres 元数据基线、ClickHouse 事件数据和最近备份 manifest。生产巡检可通过 `TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS=true` 要求最近一小时必须有非 smoke 事件进入，通过 `TRACKINGHUB_MONITOR_REQUIRE_FRESH_BACKUP=true` 要求最近备份未超过 24 小时。
+
+默认情况下，巡检会排除带有 `properties.codex_smoke_run_id` 的 Codex smoke 事件，避免本地验收事件被误判为真实业务流量。需要诊断 smoke 链路本身时，可临时设置 `TRACKINGHUB_MONITOR_INCLUDE_SMOKE_EVENTS=true`。
 
 Compose 默认把 Postgres 暴露到宿主机 `15432`、ClickHouse HTTP 暴露到 `18123`，避免和本机常见的 `5432` / `8123` 服务冲突。需要改端口时在仓库根目录 `.env` 中设置：
 

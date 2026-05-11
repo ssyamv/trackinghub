@@ -199,6 +199,13 @@ function checkClickHouseData(checks) {
     "TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS",
     false,
   );
+  const includeSmokeEvents = envBoolean(
+    "TRACKINGHUB_MONITOR_INCLUDE_SMOKE_EVENTS",
+    false,
+  );
+  const recentWindow = `received_at >= now() - INTERVAL ${recentMinutes} MINUTE`;
+  const nonSmokeEventFilter =
+    "JSONExtractString(properties, 'codex_smoke_run_id') = ''";
 
   const rawEvents = Number(clickHouseScalar("SELECT count() FROM raw_events"));
   const validationResults = Number(
@@ -206,20 +213,46 @@ function checkClickHouseData(checks) {
   );
   const recentRawEvents = Number(
     clickHouseScalar(
-      `SELECT count() FROM raw_events WHERE received_at >= now() - INTERVAL ${recentMinutes} MINUTE`,
+      `SELECT count() FROM raw_events WHERE ${recentWindow}${
+        includeSmokeEvents ? "" : ` AND ${nonSmokeEventFilter}`
+      }`,
     ),
+  );
+  const ignoredRecentSmokeRawEvents = includeSmokeEvents
+    ? 0
+    : Number(
+        clickHouseScalar(
+          `SELECT count() FROM raw_events WHERE ${recentWindow} AND NOT (${nonSmokeEventFilter})`,
+        ),
+      );
+  const latestCountedReceivedAt = clickHouseScalar(
+    `SELECT if(count() = 0, '', toString(max(received_at))) FROM raw_events${
+      includeSmokeEvents ? "" : ` WHERE ${nonSmokeEventFilter}`
+    }`,
   );
   const latestReceivedAt = clickHouseScalar(
     "SELECT if(count() = 0, '', toString(max(received_at))) FROM raw_events",
   );
+
+  const details = {
+    rawEvents,
+    validationResults,
+    recentRawEvents,
+    ignoredRecentSmokeRawEvents,
+    includeSmokeEvents,
+    latestReceivedAt,
+    latestCountedReceivedAt,
+  };
 
   if (requireRecentEvents && recentRawEvents === 0) {
     addCheck(
       checks,
       "clickhouseData",
       "error",
-      `no raw events received in the last ${recentMinutes} minutes`,
-      { rawEvents, validationResults, recentRawEvents, latestReceivedAt },
+      includeSmokeEvents
+        ? `no raw events received in the last ${recentMinutes} minutes`
+        : `no non-smoke raw events received in the last ${recentMinutes} minutes`,
+      details,
     );
     return;
   }
@@ -229,7 +262,7 @@ function checkClickHouseData(checks) {
     "clickhouseData",
     rawEvents > 0 ? "ok" : "warning",
     rawEvents > 0 ? "ClickHouse has event data" : "ClickHouse has no raw events yet",
-    { rawEvents, validationResults, recentRawEvents, latestReceivedAt },
+    details,
   );
 }
 
