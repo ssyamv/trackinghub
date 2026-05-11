@@ -26,6 +26,9 @@ void main() {
       context: const {
         'locale': 'en-US',
         'timezone': 'Asia/Shanghai',
+        'os_name': 'iOS',
+        'os_version': '18.4',
+        'device_model': 'iPhone16,2',
       },
     );
 
@@ -48,6 +51,9 @@ void main() {
       'context': {
         'locale': 'en-US',
         'timezone': 'Asia/Shanghai',
+        'os_name': 'iOS',
+        'os_version': '18.4',
+        'device_model': 'iPhone16,2',
       },
     });
   });
