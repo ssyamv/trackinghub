@@ -92,6 +92,15 @@ pnpm --filter web import:magic-frame -- --dry-run
 
 迁移步骤见仓库根目录 `docs/migration/firebase-and-server-events-to-trackinghub.md`。
 
+## SDK 弱网与离线队列
+
+正式环境接入 SDK 时必须开启可靠投递：
+
+- Flutter SDK 使用 `TrackingHubFileQueueStore`，由 App 传入应用支持目录下的队列文件；`TrackingHubMemoryQueueStore` 仅用于测试或临时调试。
+- Web SDK 在 `createTrackingHubClient` 中配置 `queue`，浏览器默认使用 `localStorage`，建议按项目设置独立 `storageKey`。
+- 两端都会先入队再尝试发送；网络异常、超时、`408`、`425`、`429`、`5xx` 会重试，`400`、`401` 等不可恢复错误会从队列丢弃。
+- App 启动、网络恢复、页面重新可见或前后台切换回来时，应主动调用 SDK 的 `flush()` 补发队列。
+
 ## 元数据数据库与本地管理员
 
 项目、环境、SDK Key、事件字典和验收记录通过 Postgres 元数据仓储读取。配置任一连接串即可启用：

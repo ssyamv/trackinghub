@@ -120,6 +120,151 @@ void main() {
       await server.close();
     }
   });
+
+  test('queued client stores transient failures and flushes them later',
+      () async {
+    final sentEvents = <Map<String, Object?>>[];
+    var online = false;
+    final store = TrackingHubMemoryQueueStore();
+    final client = TrackingHubClient(
+      config: TrackingHubConfig(
+        endpoint: Uri.parse('https://tracking.example.com/api/events'),
+        projectId: 'project_x',
+        environment: TrackingHubEnvironment.production,
+        writeKey: 'write_key',
+      ),
+      queueStore: store,
+      transport: (_, body, __) async {
+        if (!online) {
+          throw const SocketException('offline');
+        }
+        sentEvents.add(body);
+      },
+      now: () => DateTime.fromMillisecondsSinceEpoch(
+        1710000000000,
+        isUtc: true,
+      ),
+    );
+
+    await client.track('frame_enter', properties: const {'frame_id': '1'});
+
+    expect(sentEvents, isEmpty);
+    expect(await store.pendingCount(), 1);
+
+    online = true;
+    final result = await client.flush();
+
+    expect(result.delivered, 1);
+    expect(await store.pendingCount(), 0);
+    expect(sentEvents.single['event_name'], 'frame_enter');
+  });
+
+  test('queued client retries server errors and keeps the event pending',
+      () async {
+    var attempts = 0;
+    final store = TrackingHubMemoryQueueStore();
+    final client = TrackingHubClient(
+      config: TrackingHubConfig(
+        endpoint: Uri.parse('https://tracking.example.com/api/events'),
+        projectId: 'project_x',
+        environment: TrackingHubEnvironment.production,
+        writeKey: 'write_key',
+      ),
+      queueStore: store,
+      retryPolicy: const TrackingHubRetryPolicy(
+        maxAttempts: 3,
+        retryDelays: [Duration.zero, Duration.zero],
+      ),
+      transport: (_, __, ___) async {
+        attempts += 1;
+        if (attempts == 1) {
+          throw const TrackingHubTransportException(
+            statusCode: 503,
+            responseBody: '{"ok":false}',
+          );
+        }
+      },
+    );
+
+    await client.track('frame_enter');
+
+    expect(attempts, 2);
+    expect(await store.pendingCount(), 0);
+  });
+
+  test('queued client drops non-retryable write key failures', () async {
+    var attempts = 0;
+    final store = TrackingHubMemoryQueueStore();
+    final client = TrackingHubClient(
+      config: TrackingHubConfig(
+        endpoint: Uri.parse('https://tracking.example.com/api/events'),
+        projectId: 'project_x',
+        environment: TrackingHubEnvironment.production,
+        writeKey: 'bad_write_key',
+      ),
+      queueStore: store,
+      transport: (_, __, ___) async {
+        attempts += 1;
+        throw const TrackingHubTransportException(
+          statusCode: 401,
+          responseBody: '{"accepted":false}',
+        );
+      },
+    );
+
+    await client.track('frame_enter');
+
+    expect(attempts, 1);
+    expect(await store.pendingCount(), 0);
+  });
+
+  test('file queue store restores pending events after client restart',
+      () async {
+    final tempDir = await Directory.systemTemp.createTemp('trackinghub_test_');
+    final queueFile = File('${tempDir.path}/queue.json');
+
+    try {
+      final firstStore = TrackingHubFileQueueStore(queueFile);
+      final firstClient = TrackingHubClient(
+        config: TrackingHubConfig(
+          endpoint: Uri.parse('https://tracking.example.com/api/events'),
+          projectId: 'project_x',
+          environment: TrackingHubEnvironment.production,
+          writeKey: 'write_key',
+        ),
+        queueStore: firstStore,
+        transport: (_, __, ___) async {
+          throw const SocketException('offline');
+        },
+      );
+
+      await firstClient.track('frame_enter');
+      expect(await firstStore.pendingCount(), 1);
+
+      final sentEvents = <Map<String, Object?>>[];
+      final restoredStore = TrackingHubFileQueueStore(queueFile);
+      final restoredClient = TrackingHubClient(
+        config: TrackingHubConfig(
+          endpoint: Uri.parse('https://tracking.example.com/api/events'),
+          projectId: 'project_x',
+          environment: TrackingHubEnvironment.production,
+          writeKey: 'write_key',
+        ),
+        queueStore: restoredStore,
+        transport: (_, body, __) async {
+          sentEvents.add(body);
+        },
+      );
+
+      final result = await restoredClient.flush();
+
+      expect(result.delivered, 1);
+      expect(sentEvents.single['event_name'], 'frame_enter');
+      expect(await restoredStore.pendingCount(), 0);
+    } finally {
+      await tempDir.delete(recursive: true);
+    }
+  });
 }
 
 class _ReceivedRequest {

@@ -50,4 +50,183 @@ describe("createTrackingHubClient", () => {
       },
     });
   });
+
+  it("keeps direct delivery mode when queue options are omitted", async () => {
+    const storage = createMemoryStorage();
+    const previousLocalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: storage,
+    });
+    const client = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "write_key",
+      fetch: async () => {
+        throw new TypeError("offline");
+      },
+    });
+
+    try {
+      await expect(client.track("frame_enter")).rejects.toThrow("offline");
+      expect(storage.getItem("trackinghub:event-queue")).toBeNull();
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: previousLocalStorage,
+      });
+    }
+  });
+
+  it("queues transient failures and flushes them after the network recovers", async () => {
+    const storage = createMemoryStorage();
+    const requests: Array<Record<string, unknown>> = [];
+    let online = false;
+    const fetcher = async (_url: string | URL | Request, init?: RequestInit) => {
+      if (!online) {
+        throw new TypeError("Failed to fetch");
+      }
+      requests.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ accepted: true }), { status: 202 });
+    };
+    const client = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "write_key",
+      fetch: fetcher,
+      now: () => 1710000000000,
+      queue: {
+        storage,
+        retryDelaysMs: [30_000],
+      },
+    });
+
+    await client.track("frame_enter", { frame_id: "1" });
+
+    expect(requests).toHaveLength(0);
+    expect(await client.pendingCount()).toBe(1);
+
+    online = true;
+    const result = await client.flush();
+
+    expect(result.delivered).toBe(1);
+    expect(await client.pendingCount()).toBe(0);
+    expect(requests[0].event_name).toBe("frame_enter");
+  });
+
+  it("retries retryable server failures without leaving delivered events queued", async () => {
+    let attempts = 0;
+    const client = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "write_key",
+      fetch: async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return new Response(JSON.stringify({ accepted: false }), { status: 503 });
+        }
+        return new Response(JSON.stringify({ accepted: true }), { status: 202 });
+      },
+      queue: {
+        storage: createMemoryStorage(),
+        retryDelaysMs: [0],
+        maxAttempts: 3,
+      },
+    });
+
+    await client.track("frame_enter");
+
+    expect(attempts).toBe(2);
+    expect(await client.pendingCount()).toBe(0);
+  });
+
+  it("drops non-retryable write key failures from the queue", async () => {
+    let attempts = 0;
+    const client = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "bad_write_key",
+      fetch: async () => {
+        attempts += 1;
+        return new Response(JSON.stringify({ accepted: false }), { status: 401 });
+      },
+      queue: {
+        storage: createMemoryStorage(),
+      },
+    });
+
+    await client.track("frame_enter");
+
+    expect(attempts).toBe(1);
+    expect(await client.pendingCount()).toBe(0);
+  });
+
+  it("restores queued events from browser storage after client recreation", async () => {
+    const storage = createMemoryStorage();
+    const firstClient = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "write_key",
+      fetch: async () => {
+        throw new TypeError("offline");
+      },
+      queue: {
+        storage,
+      },
+    });
+
+    await firstClient.track("frame_enter");
+    expect(await firstClient.pendingCount()).toBe(1);
+
+    const requests: Array<Record<string, unknown>> = [];
+    const restoredClient = createTrackingHubClient({
+      endpoint: "https://tracking.example.com/api/events",
+      projectId: "project_x",
+      environment: "prod",
+      writeKey: "write_key",
+      fetch: async (_url, init) => {
+        requests.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify({ accepted: true }), { status: 202 });
+      },
+      queue: {
+        storage,
+      },
+    });
+
+    const result = await restoredClient.flush();
+
+    expect(result.delivered).toBe(1);
+    expect(requests[0].event_name).toBe("frame_enter");
+    expect(await restoredClient.pendingCount()).toBe(0);
+  });
 });
+
+function createMemoryStorage(): Storage {
+  const data = new Map<string, string>();
+
+  return {
+    get length() {
+      return data.size;
+    },
+    clear() {
+      data.clear();
+    },
+    getItem(key: string) {
+      return data.get(key) ?? null;
+    },
+    key(index: number) {
+      return Array.from(data.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      data.delete(key);
+    },
+    setItem(key: string, value: string) {
+      data.set(key, value);
+    },
+  };
+}
