@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import type {
   AnalyticsDimensionGroup,
+  AnalyticsDimensionKey,
   AnalyticsFunnelStep,
   AnalyticsPropertyValueItem,
   AnalyticsTrendItem,
@@ -31,10 +32,12 @@ import type {
 } from "@/lib/analytics/clickhouse-analytics";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRight,
   Layers3,
   RotateCcw,
   Search,
 } from "lucide-react";
+import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import {
@@ -190,6 +193,16 @@ function buildAnalyticsHref(filters: AnalyticsFilters) {
   const params = buildAnalyticsParams(filters);
   const query = params.toString();
   return query ? `/analytics?${query}` : "/analytics";
+}
+
+function buildDistributionHref(
+  filters: AnalyticsFilters,
+  dimension: AnalyticsDimensionKey,
+) {
+  const params = buildAnalyticsParams(filters);
+  params.set("dimension", dimension);
+
+  return `/analytics/distributions?${params.toString()}`;
 }
 
 function largestDropoff(steps: AnalyticsFunnelStep[]) {
@@ -455,8 +468,10 @@ function PropertyAnalysis({
 
 function DimensionDistribution({
   groups,
+  filters,
 }: {
   groups: AnalyticsDimensionGroup[];
+  filters: AnalyticsFilters;
 }) {
   const visibleGroups = groups.filter((group) => group.items.length > 0);
 
@@ -467,41 +482,33 @@ function DimensionDistribution({
       </CardHeader>
       <CardContent>
         {visibleGroups.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {visibleGroups.map((group) => (
-              <div
-                className="rounded-lg border border-border bg-card p-4"
+              <Link
+                className="group grid min-h-28 gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-muted/30"
+                href={buildDistributionHref(filters, group.key)}
                 key={group.key}
               >
-                <div className="text-sm font-semibold">{group.label}</div>
-                <div className="mt-4 grid gap-3">
-                  {group.items.map((item) => (
-                    <div className="grid gap-1.5" key={item.value}>
-                      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                        <span className="min-w-0 truncate font-mono text-xs font-semibold">
-                          {item.value}
-                        </span>
-                        <span className="font-semibold">{item.share}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span>事件 {item.eventCount}</span>
-                        <span>用户 {item.uniqueUsers}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-chart-4"
-                          style={{
-                            width: `${Math.max(
-                              item.shareValue > 0 ? 3 : 0,
-                              Math.min(100, item.shareValue * 100),
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-semibold">{group.label}</div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
                 </div>
-              </div>
+                <div className="min-w-0">
+                  <div
+                    className="truncate font-mono text-sm font-semibold"
+                    title={group.items[0]?.value}
+                  >
+                    {group.items[0]?.value}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Top 占比 {group.items[0]?.share}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span>事件 {group.items[0]?.eventCount}</span>
+                  <span>用户 {group.items[0]?.uniqueUsers}</span>
+                </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -834,7 +841,10 @@ export function AnalyticsWorkbench({
         )}
       </section>
 
-      <DimensionDistribution groups={workbenchData.dimensionGroups} />
+      <DimensionDistribution
+        filters={activeFilters}
+        groups={workbenchData.dimensionGroups}
+      />
 
       <Card>
         <CardHeader>

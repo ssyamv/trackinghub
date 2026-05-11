@@ -140,6 +140,14 @@ describe("AnalyticsWorkbench client refresh", () => {
     expect(document.body.textContent).toContain("用户地区");
     expect(document.body.textContent).toContain("US");
     expect(document.body.textContent).toContain("48.0%");
+    const countryDistributionLink = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(
+        'a[href^="/analytics/distributions?"]',
+      ),
+    ).find((link) => link.textContent?.includes("用户地区"));
+    expect(countryDistributionLink?.href).toContain("dimension=country");
+    expect(countryDistributionLink?.href).toContain("range=30d");
+    expect(countryDistributionLink?.href).toContain("granularity=hour");
 
     const environmentSelect = document.querySelector(
       'select[name="environment"]',
