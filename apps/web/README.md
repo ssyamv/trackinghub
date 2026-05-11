@@ -38,6 +38,14 @@ docker compose up --build
 
 运行状态可通过 [http://localhost:3000/api/health](http://localhost:3000/api/health) 查看。生产依赖缺失或连接失败时会返回 `503`。
 
+需要做自动巡检时，在仓库根目录执行：
+
+```bash
+pnpm run monitor:compose
+```
+
+脚本会检查 compose 三个服务、`/api/health`、Postgres 元数据基线、ClickHouse 事件数据和最近备份 manifest。生产巡检可通过 `TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS=true` 要求最近一小时必须有事件进入，通过 `TRACKINGHUB_MONITOR_REQUIRE_FRESH_BACKUP=true` 要求最近备份未超过 24 小时。
+
 Compose 默认把 Postgres 暴露到宿主机 `15432`、ClickHouse HTTP 暴露到 `18123`，避免和本机常见的 `5432` / `8123` 服务冲突。需要改端口时在仓库根目录 `.env` 中设置：
 
 ```bash
