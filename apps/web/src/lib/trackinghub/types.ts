@@ -146,6 +146,29 @@ export type AnalyticsPropertyValueItem = {
   uniqueUsersValue: number;
 };
 
+export type AnalyticsDimensionKey =
+  | "app_version"
+  | "country"
+  | "channel"
+  | "device_os"
+  | "device_model";
+
+export type AnalyticsDimensionItem = {
+  value: string;
+  eventCount: string;
+  eventCountValue: number;
+  uniqueUsers: string;
+  uniqueUsersValue: number;
+  share: string;
+  shareValue: number;
+};
+
+export type AnalyticsDimensionGroup = {
+  key: AnalyticsDimensionKey;
+  label: string;
+  items: AnalyticsDimensionItem[];
+};
+
 export type AnalyticsProjectOption = {
   id: string;
   name: string;

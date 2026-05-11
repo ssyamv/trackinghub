@@ -36,6 +36,55 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
           retained_users: "42",
         },
       ],
+      [
+        {
+          dimension_key: "app_version",
+          dimension_label: "App 版本",
+          dimension_value: "1.5.1",
+          event_count: "900",
+          unique_users: "120",
+          total_events: "1800",
+        },
+        {
+          dimension_key: "country",
+          dimension_label: "用户地区",
+          dimension_value: "US",
+          event_count: "450",
+          unique_users: "80",
+          total_events: "900",
+        },
+        {
+          dimension_key: "channel",
+          dimension_label: "渠道",
+          dimension_value: "google_play",
+          event_count: "360",
+          unique_users: "70",
+          total_events: "900",
+        },
+        {
+          dimension_key: "device_os",
+          dimension_label: "设备系统",
+          dimension_value: "iOS 18.4",
+          event_count: "300",
+          unique_users: "60",
+          total_events: "900",
+        },
+        {
+          dimension_key: "device_model",
+          dimension_label: "设备型号",
+          dimension_value: "iPhone16,2",
+          event_count: "240",
+          unique_users: "50",
+          total_events: "900",
+        },
+        {
+          dimension_key: "device_model",
+          dimension_label: "设备型号",
+          event_count: "90",
+          unique_users: "30",
+          total_events: "900",
+        },
+      ],
     ];
 
     const client = createClickHouseAnalyticsClientFromEnv(
@@ -112,13 +161,101 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
           retentionRate: 0.42,
         },
       ],
+      dimensionGroups: [
+        {
+          key: "app_version",
+          label: "App 版本",
+          items: [
+            {
+              value: "1.5.1",
+              eventCount: "900",
+              eventCountValue: 900,
+              uniqueUsers: "120",
+              uniqueUsersValue: 120,
+              share: "50.0%",
+              shareValue: 0.5,
+            },
+          ],
+        },
+        {
+          key: "country",
+          label: "用户地区",
+          items: [
+            {
+              value: "US",
+              eventCount: "450",
+              eventCountValue: 450,
+              uniqueUsers: "80",
+              uniqueUsersValue: 80,
+              share: "50.0%",
+              shareValue: 0.5,
+            },
+          ],
+        },
+        {
+          key: "channel",
+          label: "渠道",
+          items: [
+            {
+              value: "google_play",
+              eventCount: "360",
+              eventCountValue: 360,
+              uniqueUsers: "70",
+              uniqueUsersValue: 70,
+              share: "40.0%",
+              shareValue: 0.4,
+            },
+          ],
+        },
+        {
+          key: "device_os",
+          label: "设备系统",
+          items: [
+            {
+              value: "iOS 18.4",
+              eventCount: "300",
+              eventCountValue: 300,
+              uniqueUsers: "60",
+              uniqueUsersValue: 60,
+              share: "33.3%",
+              shareValue: 1 / 3,
+            },
+          ],
+        },
+        {
+          key: "device_model",
+          label: "设备型号",
+          items: [
+            {
+              value: "iPhone16,2",
+              eventCount: "240",
+              eventCountValue: 240,
+              uniqueUsers: "50",
+              uniqueUsersValue: 50,
+              share: "26.7%",
+              shareValue: 240 / 900,
+            },
+            {
+              value: "未提供",
+              eventCount: "90",
+              eventCountValue: 90,
+              uniqueUsers: "30",
+              uniqueUsersValue: 30,
+              share: "10.0%",
+              shareValue: 0.1,
+            },
+          ],
+        },
+      ],
     });
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(5);
     expect(requests[0].url).toContain("database=trackinghub");
     expect(requests[0].url).toContain("FROM+raw_events");
     expect(requests[1].url).toContain("FROM+event_validation_results");
     expect(requests[2].url).toContain("GROUP+BY+bucket%2C+event_name");
     expect(requests[3].url).toContain("cohort_sizes");
+    expect(requests[4].url).toContain("dimension_key");
+    expect(requests[4].url).toContain("JSONExtractString");
     expect(requests[0].init?.headers).toMatchObject({
       Authorization: "Basic cmVhZGVyOnNlY3JldA==",
     });
@@ -129,6 +266,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     const responses = [
       [{ event_count: "42", active_users: "9", last_received_at: "" }],
       [{ validation_count: "4", invalid_count: "1" }],
+      [],
       [],
       [],
     ];
@@ -177,8 +315,11 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     expect(decodedQueries[2]).toContain("LIMIT 720");
     expect(decodedQueries[3]).toContain("cohort_sizes");
     expect(decodedQueries[3]).toContain("event_name = 'pay_button_click'");
-    expect(decodedQueries[4]).toContain("JSONExtractKeysAndValuesRaw(properties)");
-    expect(requests).toHaveLength(5);
+    expect(decodedQueries[4]).toContain("dimension_key");
+    expect(decodedQueries[4]).toContain("event_name = 'pay_button_click'");
+    expect(decodedQueries[4]).toContain("JSONExtractString(context, 'os_name')");
+    expect(decodedQueries[5]).toContain("JSONExtractKeysAndValuesRaw(properties)");
+    expect(requests).toHaveLength(6);
   });
 
   it("applies custom date range filters to ClickHouse queries", async () => {
@@ -186,6 +327,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     const responses = [
       [{ event_count: "3447", active_users: "217", last_received_at: "" }],
       [{ validation_count: "3447", invalid_count: "0" }],
+      [],
       [],
       [],
     ];
@@ -231,6 +373,9 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     expect(decodedQueries[3]).toContain(
       "timestamp >= toDateTime64('2026-05-05 00:00:00', 3, 'UTC')",
     );
+    expect(decodedQueries[4]).toContain(
+      "timestamp >= toDateTime64('2026-05-05 00:00:00', 3, 'UTC')",
+    );
     expect(decodedQueries[0]).not.toContain("now() - INTERVAL");
   });
 
@@ -239,6 +384,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     const responses = [
       [{ event_count: "10", active_users: "5", last_received_at: "" }],
       [{ validation_count: "0", invalid_count: "0" }],
+      [],
       [],
       [],
       [
@@ -268,7 +414,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     });
 
     const funnelQuery = decodeURIComponent(
-      new URL(requests[4].url).searchParams.get("query") ?? "",
+      new URL(requests[5].url).searchParams.get("query") ?? "",
     );
 
     expect(result?.funnelSteps).toEqual([
@@ -312,6 +458,7 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     const responses = [
       [{ event_count: "240", active_users: "90", last_received_at: "" }],
       [{ validation_count: "240", invalid_count: "0" }],
+      [],
       [],
       [],
       [
@@ -358,10 +505,10 @@ describe("createClickHouseAnalyticsClientFromEnv", () => {
     });
 
     const propertyQuery = decodeURIComponent(
-      new URL(requests[4].url).searchParams.get("query") ?? "",
+      new URL(requests[5].url).searchParams.get("query") ?? "",
     );
 
-    expect(requests).toHaveLength(5);
+    expect(requests).toHaveLength(6);
     expect(propertyQuery).toContain("event_name = 'pay_button_click'");
     expect(propertyQuery).toContain("JSONExtractKeysAndValuesRaw(properties)");
     expect(propertyQuery).toContain("uniqExact(identity) AS unique_users");

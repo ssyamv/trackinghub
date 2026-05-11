@@ -1,4 +1,6 @@
 import type {
+  AnalyticsDimensionGroup,
+  AnalyticsDimensionKey,
   AnalyticsFunnelStep,
   AnalyticsPropertyValueItem,
   AnalyticsRetentionItem,
@@ -14,6 +16,7 @@ export type AnalyticsData = {
   retentionItems: AnalyticsRetentionItem[];
   propertyItems: AnalyticsPropertyValueItem[];
   propertyKeyCount: number;
+  dimensionGroups: AnalyticsDimensionGroup[];
 };
 
 export type AnalyticsRange = "7d" | "30d";
@@ -61,6 +64,53 @@ export type ClickHouseAnalyticsClient = {
 type FetchLike = typeof fetch;
 type AnalyticsEnv = Record<string, string | undefined>;
 type ClickHouseRow = Record<string, unknown>;
+
+type AnalyticsDimensionDefinition = {
+  key: AnalyticsDimensionKey;
+  label: string;
+  valueExpression: string;
+};
+
+const MISSING_DIMENSION_VALUE = "未提供";
+
+const ANALYTICS_DIMENSIONS: AnalyticsDimensionDefinition[] = [
+  {
+    key: "app_version",
+    label: "App 版本",
+    valueExpression: "coalesce(nullIf(app_version, ''), '未提供')",
+  },
+  {
+    key: "country",
+    label: "用户地区",
+    valueExpression: "coalesce(nullIf(country, ''), '未提供')",
+  },
+  {
+    key: "channel",
+    label: "渠道",
+    valueExpression: "coalesce(nullIf(channel, ''), '未提供')",
+  },
+  {
+    key: "device_os",
+    label: "设备系统",
+    valueExpression: [
+      "if(",
+      "nullIf(JSONExtractString(context, 'os_name'), '') IS NULL,",
+      "'未提供',",
+      "if(",
+      "nullIf(JSONExtractString(context, 'os_version'), '') IS NULL,",
+      "JSONExtractString(context, 'os_name'),",
+      "concat(JSONExtractString(context, 'os_name'), ' ', JSONExtractString(context, 'os_version'))",
+      ")",
+      ")",
+    ].join(" "),
+  },
+  {
+    key: "device_model",
+    label: "设备型号",
+    valueExpression:
+      "coalesce(nullIf(JSONExtractString(context, 'device_model'), ''), '未提供')",
+  },
+];
 
 export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
   funnelSteps: [],
@@ -428,6 +478,43 @@ function buildPropertyDistributionQuery(filters: AnalyticsFilters) {
   `;
 }
 
+function buildDimensionQuery(filters: AnalyticsFilters) {
+  const dimensionQueries = ANALYTICS_DIMENSIONS.map((dimension) => {
+    return `
+      SELECT
+        ${clickHouseString(dimension.key)} AS dimension_key,
+        ${clickHouseString(dimension.label)} AS dimension_label,
+        dimension_value,
+        event_count,
+        unique_users,
+        total_events
+      FROM (
+        SELECT
+          dimension_value,
+          event_count,
+          unique_users,
+          sum(event_count) OVER () AS total_events
+        FROM (
+          SELECT
+            ${dimension.valueExpression} AS dimension_value,
+            count() AS event_count,
+            uniqExact(${identityExpression()}) AS unique_users
+          FROM raw_events
+          WHERE ${filterConditions(filters, "timestamp").trim()}
+          GROUP BY dimension_value
+        )
+        ORDER BY event_count DESC, dimension_value ASC
+        LIMIT 10
+      )
+    `;
+  }).join("\n    UNION ALL\n");
+
+  return `
+    ${dimensionQueries}
+    FORMAT JSONEachRow
+  `;
+}
+
 function buildFunnelQuery(filters: AnalyticsFilters) {
   const eventList = filters.funnelSteps.map(clickHouseString).join(", ");
   const stepColumns = filters.funnelSteps
@@ -611,6 +698,41 @@ function propertyKeyCount(rows: ClickHouseRow[]) {
   return new Set(rows.map((row) => String(row.property_key ?? ""))).size;
 }
 
+function dimensionValue(value: unknown) {
+  return typeof value === "string" && value.trim() !== ""
+    ? value
+    : MISSING_DIMENSION_VALUE;
+}
+
+function mapDimensionGroups(rows: ClickHouseRow[]): AnalyticsDimensionGroup[] {
+  return ANALYTICS_DIMENSIONS.map((dimension) => {
+    const items = rows
+      .filter((row) => row.dimension_key === dimension.key)
+      .map((row) => {
+        const eventCount = toNumber(row.event_count);
+        const uniqueUsers = toNumber(row.unique_users);
+        const totalEvents = toNumber(row.total_events);
+        const shareValue = totalEvents > 0 ? eventCount / totalEvents : 0;
+
+        return {
+          value: dimensionValue(row.dimension_value),
+          eventCount: formatCompact(eventCount),
+          eventCountValue: eventCount,
+          uniqueUsers: formatCompact(uniqueUsers),
+          uniqueUsersValue: uniqueUsers,
+          share: formatPercent(eventCount, totalEvents),
+          shareValue,
+        };
+      });
+
+    return {
+      key: dimension.key,
+      label: dimension.label,
+      items,
+    };
+  });
+}
+
 function mapFunnelSteps(rows: ClickHouseRow[]): AnalyticsFunnelStep[] {
   const sortedRows = [...rows].sort(
     (left, right) => toNumber(left.step) - toNumber(right.step),
@@ -674,6 +796,7 @@ export function createClickHouseAnalyticsClientFromEnv(
         validationRows,
         trendRows,
         retentionRows,
+        dimensionRows,
         funnelRows,
         propertyRows,
       ] = await Promise.all([
@@ -695,6 +818,11 @@ export function createClickHouseAnalyticsClientFromEnv(
           queryClickHouseRows(
             fetchImpl,
             buildClickHouseUrl(clickHouseUrl, database, buildRetentionQuery(filters)),
+            headers,
+          ),
+          queryClickHouseRows(
+            fetchImpl,
+            buildClickHouseUrl(clickHouseUrl, database, buildDimensionQuery(filters)),
             headers,
           ),
           filters.funnelSteps.length >= 2
@@ -729,6 +857,7 @@ export function createClickHouseAnalyticsClientFromEnv(
         funnelSteps: mapFunnelSteps(funnelRows),
         propertyItems: mapPropertyItems(propertyRows, filters.propertyKey),
         propertyKeyCount: propertyKeyCount(propertyRows),
+        dimensionGroups: mapDimensionGroups(dimensionRows),
       };
     },
   };
