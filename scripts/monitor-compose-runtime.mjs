@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const rootDir = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
@@ -275,17 +275,71 @@ function latestBackupManifest() {
 
   const candidates = readdirSync(backupRoot)
     .map((name) => {
+      const backupDir = join(backupRoot, name);
       const manifestPath = join(backupRoot, name, "manifest.txt");
       if (!existsSync(manifestPath)) {
         return null;
       }
       const stat = statSync(manifestPath);
-      return { manifestPath, mtimeMs: stat.mtimeMs };
+      return { backupDir, manifestPath, mtimeMs: stat.mtimeMs };
     })
     .filter(Boolean)
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
 
   return candidates[0] ?? null;
+}
+
+function checkBackupRestoreDrill(checks) {
+  const requireRestoreDrill = envBoolean(
+    "TRACKINGHUB_MONITOR_REQUIRE_RESTORE_DRILL",
+    false,
+  );
+  const latest = latestBackupManifest();
+
+  if (!latest) {
+    addCheck(
+      checks,
+      "backupRestoreDrill",
+      requireRestoreDrill ? "error" : "warning",
+      "no local compose backup manifest found for restore drill",
+    );
+    return;
+  }
+
+  const markerPath = join(latest.backupDir, "restore-drill.txt");
+  if (!existsSync(markerPath)) {
+    addCheck(
+      checks,
+      "backupRestoreDrill",
+      requireRestoreDrill ? "error" : "warning",
+      "latest backup has no restore drill marker",
+      {
+        manifestPath: latest.manifestPath,
+        markerPath,
+      },
+    );
+    return;
+  }
+
+  const markerStat = statSync(markerPath);
+  const marker = readFileSync(markerPath, "utf8");
+  const markerOk = /^status=ok$/m.test(marker);
+  const markerCoversManifest = markerStat.mtimeMs >= latest.mtimeMs;
+
+  addCheck(
+    checks,
+    "backupRestoreDrill",
+    markerOk && markerCoversManifest ? "ok" : requireRestoreDrill ? "error" : "warning",
+    markerOk && markerCoversManifest
+      ? "latest backup has a successful restore drill marker"
+      : "latest backup restore drill marker is missing or stale",
+    {
+      manifestPath: latest.manifestPath,
+      markerPath,
+      markerMtime: new Date(markerStat.mtimeMs).toISOString(),
+      markerCoversManifest,
+    },
+  );
 }
 
 function checkBackupFreshness(checks) {
@@ -330,6 +384,7 @@ async function main() {
     checkMetadata(checks);
     checkClickHouseData(checks);
     checkBackupFreshness(checks);
+    checkBackupRestoreDrill(checks);
   } catch (error) {
     addCheck(checks, "monitorRuntime", "error", "monitor failed to complete", {
       error: error instanceof Error ? error.message : String(error),

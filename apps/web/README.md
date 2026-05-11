@@ -44,7 +44,7 @@ docker compose up --build
 pnpm run monitor:compose
 ```
 
-脚本会检查 compose 三个服务、`/api/health`、Postgres 元数据基线、ClickHouse 事件数据和最近备份 manifest。生产巡检可通过 `TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS=true` 要求最近一小时必须有非 smoke 事件进入，通过 `TRACKINGHUB_MONITOR_REQUIRE_FRESH_BACKUP=true` 要求最近备份未超过 24 小时。
+脚本会检查 compose 三个服务、`/api/health`、Postgres 元数据基线、ClickHouse 事件数据和最近备份 manifest。生产巡检可通过 `TRACKINGHUB_MONITOR_REQUIRE_RECENT_EVENTS=true` 要求最近一小时必须有非 smoke 事件进入，通过 `TRACKINGHUB_MONITOR_REQUIRE_FRESH_BACKUP=true` 要求最近备份未超过 24 小时，通过 `TRACKINGHUB_MONITOR_REQUIRE_RESTORE_DRILL=true` 要求最新备份已完成恢复演练。
 
 默认情况下，巡检会排除带有 `properties.codex_smoke_run_id` 的 Codex smoke 事件，避免本地验收事件被误判为真实业务流量。需要诊断 smoke 链路本身时，可临时设置 `TRACKINGHUB_MONITOR_INCLUDE_SMOKE_EVENTS=true`。
 
@@ -81,7 +81,7 @@ pnpm run verify:backup
 pnpm run drill:backup
 ```
 
-演练脚本会在当前 compose 的 Postgres 和 ClickHouse 中创建临时 restore 数据库，恢复备份数据并校验 manifest 中的项目、事件定义、raw events 和验证结果计数，结束后自动删除临时数据库。也可以传入指定备份目录：`pnpm run drill:backup -- .trackinghub-backups/<timestamp>`。
+演练脚本会在当前 compose 的 Postgres 和 ClickHouse 中创建临时 restore 数据库，恢复备份数据并校验 manifest 中的项目、事件定义、raw events 和验证结果计数，结束后自动删除临时数据库，并在备份目录写入 `restore-drill.txt` 作为巡检凭据。也可以传入指定备份目录：`pnpm run drill:backup -- .trackinghub-backups/<timestamp>`。
 
 ## 事件写入配置
 

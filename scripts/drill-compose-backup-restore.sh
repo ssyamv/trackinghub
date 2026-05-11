@@ -114,6 +114,16 @@ if [[ "$actual_validation_results" != "$expected_validation_results" ]]; then
   exit 1
 fi
 
+{
+  echo "timestamp_utc=$(date -u +"%Y%m%dT%H%M%SZ")"
+  echo "status=ok"
+  echo "backup_dir=$BACKUP_DIR"
+  echo "postgres_projects=$actual_projects"
+  echo "postgres_event_definitions=$actual_event_definitions"
+  echo "clickhouse_raw_events=$actual_raw_events"
+  echo "clickhouse_validation_results=$actual_validation_results"
+} > "$BACKUP_DIR/restore-drill.txt"
+
 echo "Backup restore drill ok:"
 echo "postgres_projects=$actual_projects"
 echo "postgres_event_definitions=$actual_event_definitions"
