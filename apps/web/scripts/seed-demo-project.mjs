@@ -165,6 +165,120 @@ const DEMO_EVENTS = [
   }),
 ];
 
+const MOBILE_PROFILES = [
+  {
+    weight: 28,
+    appVersion: "3.8.1",
+    channel: "app_store",
+    country: "US",
+    osName: "iOS",
+    osVersion: "18.4",
+    deviceModel: "iPhone16,2",
+  },
+  {
+    weight: 22,
+    appVersion: "3.8.0",
+    channel: "google_play",
+    country: "IN",
+    osName: "Android",
+    osVersion: "15",
+    deviceModel: "Pixel 8",
+  },
+  {
+    weight: 16,
+    appVersion: "3.7.9",
+    channel: "huawei_store",
+    country: "CN",
+    osName: "Android",
+    osVersion: "14",
+    deviceModel: "Huawei Mate 60",
+  },
+  {
+    weight: 14,
+    appVersion: "3.8.1",
+    channel: "samsung_store",
+    country: "KR",
+    osName: "Android",
+    osVersion: "14",
+    deviceModel: "Galaxy S24",
+  },
+  {
+    weight: 12,
+    appVersion: "3.9.0-beta",
+    channel: "testflight",
+    country: "JP",
+    osName: "iOS",
+    osVersion: "18.3",
+    deviceModel: "iPhone15,3",
+  },
+  {
+    weight: 8,
+    appVersion: "3.7.8",
+    channel: "apk_direct",
+    country: "BR",
+    osName: "Android",
+    osVersion: "13",
+    deviceModel: "Xiaomi 14",
+  },
+];
+
+const WEB_PROFILES = [
+  {
+    weight: 26,
+    appVersion: "web-2026.05",
+    channel: "web_console",
+    country: "CN",
+    osName: "macOS",
+    osVersion: "15.4",
+    deviceModel: "MacBookPro18,3",
+  },
+  {
+    weight: 22,
+    appVersion: "web-2026.05",
+    channel: "organic_search",
+    country: "US",
+    osName: "Windows",
+    osVersion: "11",
+    deviceModel: "Surface Laptop 6",
+  },
+  {
+    weight: 18,
+    appVersion: "web-2026.04",
+    channel: "email_campaign",
+    country: "DE",
+    osName: "Windows",
+    osVersion: "11",
+    deviceModel: "ThinkPad X1",
+  },
+  {
+    weight: 14,
+    appVersion: "web-2026.05",
+    channel: "referral",
+    country: "SG",
+    osName: "macOS",
+    osVersion: "14.6",
+    deviceModel: "MacBookAir10,1",
+  },
+  {
+    weight: 12,
+    appVersion: "web-2026.04",
+    channel: "partner_portal",
+    country: "GB",
+    osName: "ChromeOS",
+    osVersion: "124",
+    deviceModel: "Chromebook Plus",
+  },
+  {
+    weight: 8,
+    appVersion: "web-2026.03",
+    channel: "paid_social",
+    country: "AU",
+    osName: "Linux",
+    osVersion: "6.8",
+    deviceModel: "Desktop",
+  },
+];
+
 function demoEvent(input) {
   return input;
 }
@@ -567,25 +681,49 @@ function demoUuid(sequence) {
   return `00000000-0000-4000-8000-${sequence.toString(16).padStart(12, "0")}`;
 }
 
+function pickWeighted(items, seed) {
+  const total = items.reduce((sum, item) => sum + item.weight, 0);
+  let cursor = seed % total;
+
+  for (const item of items) {
+    if (cursor < item.weight) {
+      return item;
+    }
+
+    cursor -= item.weight;
+  }
+
+  return items[items.length - 1];
+}
+
+function demoProfile(day, user, source) {
+  const seed = user * 17 + day * 23;
+  const profiles = source === "flutter" ? MOBILE_PROFILES : WEB_PROFILES;
+
+  return pickWeighted(profiles, seed);
+}
+
 function buildRawEvents(projectId) {
   const now = new Date();
   const rows = [];
   let sequence = 1;
 
   for (let day = 0; day < 7; day += 1) {
-    const users = 42 - day * 3;
+    const users = 160 - day * 10;
 
     for (let user = 1; user <= users; user += 1) {
       const base = new Date(now.getTime() - day * 24 * 60 * 60 * 1000);
-      const source = user % 3 === 0 ? "flutter" : "web";
+      const source = (user + day) % 5 < 2 ? "flutter" : "web";
       const environment = user % 11 === 0 ? "staging" : "prod";
       const userId = `demo_user_${user.toString().padStart(3, "0")}`;
+      const profile = demoProfile(day, user, source);
 
       sequence = pushRawEvent(rows, sequence, projectId, {
         base,
         environment,
         source,
         eventName: "app_open",
+        profile,
         userId,
         minuteOffset: 1,
       });
@@ -594,6 +732,7 @@ function buildRawEvents(projectId) {
         environment,
         source,
         eventName: "homepage_view",
+        profile,
         userId,
         minuteOffset: 3,
       });
@@ -604,6 +743,7 @@ function buildRawEvents(projectId) {
           environment,
           source: "web",
           eventName: "signup_view",
+          profile: demoProfile(day, user, "web"),
           userId,
           minuteOffset: 8,
         });
@@ -615,6 +755,7 @@ function buildRawEvents(projectId) {
           environment,
           source: "web",
           eventName: "signup_submit",
+          profile: demoProfile(day, user, "web"),
           userId,
           minuteOffset: 12,
         });
@@ -626,6 +767,7 @@ function buildRawEvents(projectId) {
           environment,
           source: "web",
           eventName: "signup_success",
+          profile: demoProfile(day, user, "web"),
           userId,
           minuteOffset: 16,
         });
@@ -637,6 +779,7 @@ function buildRawEvents(projectId) {
           environment,
           source,
           eventName: "purchase_start",
+          profile,
           userId,
           minuteOffset: 22,
           properties: { sku: "pro_monthly", amount: 99 },
@@ -649,6 +792,7 @@ function buildRawEvents(projectId) {
           environment,
           source,
           eventName: "purchase_success",
+          profile,
           userId,
           minuteOffset: 28,
           properties: { order_id: `order_${day}_${user}`, amount: 99 },
@@ -668,6 +812,7 @@ function buildRawEvents(projectId) {
           environment,
           source,
           eventName: "parameter_lab_submit",
+          profile,
           userId,
           minuteOffset: 34,
           properties: {
@@ -689,6 +834,7 @@ function buildRawEvents(projectId) {
           environment,
           source,
           eventName: "pay_error",
+          profile,
           userId,
           minuteOffset: 30,
           properties: { code: "card_declined" },
@@ -702,6 +848,7 @@ function buildRawEvents(projectId) {
 
 function pushRawEvent(rows, sequence, projectId, input) {
   const timestamp = new Date(input.base.getTime() + input.minuteOffset * 60 * 1000);
+  const profile = input.profile;
 
   rows.push({
     event_id: demoUuid(sequence),
@@ -715,13 +862,18 @@ function pushRawEvent(rows, sequence, projectId, input) {
     session_id: `demo_session_${input.userId}`,
     timestamp: toClickHouseDate(timestamp),
     received_at: toClickHouseDate(new Date(timestamp.getTime() + 1000)),
-    app_version: "3.8.0",
+    app_version: profile.appVersion,
     sdk_version: input.source === "web" ? "web-demo-1.0.0" : "flutter-demo-1.0.0",
-    channel: input.source === "web" ? "web_console" : "mobile_app",
+    channel: profile.channel,
     campaign: "demo_showcase",
-    country: "CN",
+    country: profile.country,
     properties: JSON.stringify(input.properties ?? {}),
-    context: JSON.stringify({ seed: "trackinghub_demo_showcase" }),
+    context: JSON.stringify({
+      seed: "trackinghub_demo_showcase",
+      os_name: profile.osName,
+      os_version: profile.osVersion,
+      device_model: profile.deviceModel,
+    }),
   });
 
   return sequence + 1;
@@ -752,11 +904,11 @@ async function seedClickHouse(config, projectId, validationRows) {
 
   await executeClickHouse(
     config,
-    `ALTER TABLE raw_events DELETE WHERE project_id = '${projectId.replaceAll("'", "''")}'`,
+    `ALTER TABLE raw_events DELETE WHERE project_id = '${projectId.replaceAll("'", "''")}' SETTINGS mutations_sync = 1`,
   );
   await executeClickHouse(
     config,
-    `ALTER TABLE event_validation_results DELETE WHERE project_id = '${projectId.replaceAll("'", "''")}'`,
+    `ALTER TABLE event_validation_results DELETE WHERE project_id = '${projectId.replaceAll("'", "''")}' SETTINGS mutations_sync = 1`,
   );
   await executeClickHouse(
     config,
