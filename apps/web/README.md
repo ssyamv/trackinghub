@@ -34,7 +34,7 @@ pnpm run build
 docker compose up --build
 ```
 
-初始化脚本会自动创建元数据表、ClickHouse 事件表和本地管理员。启动后访问 [http://localhost:3000/login](http://localhost:3000/login)。
+初始化脚本会自动创建元数据表和 ClickHouse 事件表。首次启动后，先用 `bootstrap:admin` 创建管理员，再访问 [http://localhost:3000/login](http://localhost:3000/login)。
 
 运行状态可通过 [http://localhost:3000/api/health](http://localhost:3000/api/health) 查看。生产依赖缺失或连接失败时会返回 `503`。
 
@@ -68,9 +68,9 @@ TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true
 
 ## 分析查询配置
 
-`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`funnel_steps`、`range=7d|30d` 和 `granularity=day|hour`。`project_id` 使用 Postgres 项目 UUID。`funnel_steps` 使用英文逗号分隔事件名；未提供或不足 2 步时回到默认商业化漏斗。本地开发环境未配置 ClickHouse 或查询失败时，页面可以回展示例数据，便于本地开发和静态演示。
+`/analytics` 会优先使用同一组 ClickHouse 配置读取真实 `raw_events` 和 `event_validation_results`，生成概览、事件趋势和漏斗。页面筛选器通过 URL 查询参数驱动，支持 `project_id`、`environment`、`source`、`event_name`、`funnel_steps`、`range=7d|30d` 和 `granularity=day|hour`。`project_id` 使用 Postgres 项目 UUID。`funnel_steps` 使用英文逗号分隔事件名；未提供或不足 2 步时回到默认商业化漏斗。
 
-生产环境默认禁止分析与报告页回展示例数据；当 `NODE_ENV=production` 或 `TRACKINGHUB_REQUIRE_REAL_DATA=true` 且 ClickHouse 不可用时，页面会显示“真实数据源不可用”。本地演示如需强制使用示例数据，可显式设置：
+分析与报告页默认不回显占位数据；当 ClickHouse 不可用时，页面会显示“真实数据源不可用”。只有需要本地占位预览时才显式设置：
 
 ```bash
 TRACKINGHUB_ALLOW_SAMPLE_DATA=true
@@ -109,7 +109,6 @@ TRACKINGHUB_POSTGRES_URL=postgres://trackinghub:trackinghub@localhost:15432/trac
 
 ```bash
 psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/001_metadata_schema.sql
-psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/002_local_bootstrap_admin.sql
 ```
 
 旧库如果已经创建过 `event_validation_results`，追加执行验证结果 ID 迁移和 Magic Frame App 环境名迁移：
@@ -119,11 +118,9 @@ psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/003_event_validation_resul
 psql "$TRACKINGHUB_POSTGRES_URL" -f ../../db/postgres/004_magic_frame_environment_names.sql
 ```
 
-本地 bootstrap 管理员：`admin@example.com` / `trackinghub-admin`。共享环境或生产环境不要使用这个默认账号。
-
 启用 Postgres 后，受保护管理页面和写入 API 会校验 session。打开 `/login` 使用本地账号登录。
 
-共享环境或生产环境使用环境变量初始化管理员，不要执行本地默认账号脚本：
+使用环境变量初始化管理员：
 
 ```bash
 TRACKINGHUB_POSTGRES_URL=postgres://trackinghub:trackinghub@localhost:15432/trackinghub \
@@ -139,7 +136,7 @@ pnpm --filter web bootstrap:admin -- --dry-run
 
 - 用户可见产品文案默认使用中文。
 - SDK API、事件字段、数据库字段保持英文，确保 Web 与 Flutter 端协议稳定。
-- 本地开发允许示例数据辅助演示；共享环境和生产环境应保持 `TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true` 与 `TRACKINGHUB_REQUIRE_REAL_DATA=true`。
+- 共享环境和生产环境应保持 `TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true` 与 `TRACKINGHUB_REQUIRE_REAL_DATA=true`。
 
 ## UI 组件约定
 

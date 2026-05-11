@@ -225,7 +225,7 @@ describe("TrackingHub dashboard components", () => {
     );
 
     expect(html).toContain("分析模板");
-    expect(html).toContain("当前显示示例数据");
+    expect(html).toContain("当前显示占位数据");
     expect(html).toContain("项目 ID");
     expect(html).toContain('name="environment"');
     expect(html).toContain('name="source"');
@@ -263,7 +263,7 @@ describe("TrackingHub dashboard components", () => {
     );
 
     expect(html).toContain("真实数据源不可用");
-    expect(html).toContain("当前环境已禁止示例数据");
+    expect(html).toContain("当前环境未读取到真实数据");
     expect(html).toContain("暂不能生成指标卡片");
     expect(html).toContain("当前筛选范围暂无漏斗数据。");
   });

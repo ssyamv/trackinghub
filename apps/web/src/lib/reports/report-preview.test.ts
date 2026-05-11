@@ -139,8 +139,27 @@ describe("loadReportPreviewData", () => {
     });
   });
 
-  it("falls back to sample report preview data when analytics is unavailable", async () => {
+  it("does not use fallback report data unless explicitly enabled", async () => {
     const preview = await loadReportPreviewData({
+      client: {
+        async loadAnalytics() {
+          throw new Error("ClickHouse is down");
+        },
+      },
+    });
+
+    expect(preview.source).toBe("unavailable");
+    expect(preview.metrics).toEqual([]);
+    expect(preview.trendItems).toEqual([]);
+    expect(preview.funnelSteps).toEqual([]);
+    expect(preview.funnelDropoff).toBeNull();
+  });
+
+  it("uses fallback report preview data when explicitly enabled", async () => {
+    const preview = await loadReportPreviewData({
+      env: {
+        TRACKINGHUB_ALLOW_SAMPLE_DATA: "true",
+      },
       client: {
         async loadAnalytics() {
           throw new Error("ClickHouse is down");

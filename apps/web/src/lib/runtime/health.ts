@@ -129,8 +129,8 @@ export async function evaluateHealth({
     name: "sampleData",
     status: allowsSampleData(env) ? "warning" : "ok",
     message: allowsSampleData(env)
-      ? "当前环境允许回展示例数据"
-      : "当前环境不会回展示例数据",
+      ? "当前环境允许回显占位数据"
+      : "当前环境不会回显占位数据",
   });
 
   return {

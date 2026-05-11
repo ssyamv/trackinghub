@@ -65,12 +65,12 @@ export function AnalyticsWorkbench({
     source === "clickhouse"
       ? "已连接真实 ClickHouse 数据"
       : source === "sample"
-        ? "当前显示示例数据"
+        ? "当前显示占位数据"
         : "真实数据源不可用";
   const sourceDescription =
     source === "unavailable"
-      ? "当前环境已禁止示例数据，请配置 ClickHouse 后再查看真实分析。"
-      : "优先读取 ClickHouse raw_events；未配置或查询失败时回落示例数据。";
+      ? "当前环境未读取到真实数据，请配置 ClickHouse 后再查看真实分析。"
+      : "优先读取 ClickHouse raw_events；仅在显式开启时回落占位数据。";
 
   return (
     <div className="space-y-6">

@@ -6,10 +6,6 @@ const schema = readFileSync(
   path.resolve(process.cwd(), "../../db/postgres/001_metadata_schema.sql"),
   "utf8",
 );
-const localBootstrap = readFileSync(
-  path.resolve(process.cwd(), "../../db/postgres/002_local_bootstrap_admin.sql"),
-  "utf8",
-);
 const validationResultIdMigration = readFileSync(
   path.resolve(
     process.cwd(),
@@ -71,10 +67,9 @@ describe("metadata postgres schema", () => {
     );
   });
 
-  it("provides a local bootstrap path for fresh databases", () => {
-    expect(localBootstrap).toContain("INSERT INTO workspaces");
-    expect(localBootstrap).toContain("INSERT INTO users");
-    expect(localBootstrap).toContain("'admin@example.com'");
-    expect(localBootstrap).toContain("'admin'");
+  it("stores reports with source query references", () => {
+    expect(schema).toContain("CREATE TABLE reports");
+    expect(schema).toContain("source_query_refs JSONB NOT NULL DEFAULT '[]'::jsonb");
+    expect(schema).toContain("CREATE INDEX idx_reports_project_generated");
   });
 });

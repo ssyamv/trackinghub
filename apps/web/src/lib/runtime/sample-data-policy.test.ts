@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { allowsSampleData } from "./sample-data-policy";
 
 describe("allowsSampleData", () => {
-  it("allows sample data in local development by default", () => {
-    expect(allowsSampleData({ NODE_ENV: "development" })).toBe(true);
+  it("requires an explicit opt-in", () => {
+    expect(allowsSampleData({ NODE_ENV: "development" })).toBe(false);
+    expect(allowsSampleData({})).toBe(false);
   });
 
   it("disables sample data in production by default", () => {

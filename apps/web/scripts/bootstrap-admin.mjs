@@ -4,9 +4,6 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const DEFAULT_LOCAL_EMAIL = "admin@example.com";
-const DEFAULT_LOCAL_PASSWORD = "trackinghub-admin";
-
 function readConfig(env) {
   return {
     databaseUrl: env.TRACKINGHUB_POSTGRES_URL ?? env.DATABASE_URL ?? "",
@@ -14,7 +11,6 @@ function readConfig(env) {
     password: env.TRACKINGHUB_ADMIN_PASSWORD ?? "",
     name: env.TRACKINGHUB_ADMIN_NAME ?? "TrackingHub 管理员",
     workspaceName: env.TRACKINGHUB_WORKSPACE_NAME ?? "TrackingHub",
-    allowLocalAdmin: env.TRACKINGHUB_ALLOW_LOCAL_ADMIN === "true",
   };
 }
 
@@ -31,16 +27,6 @@ function validateConfig(config) {
 
   if (!config.password || config.password.length < 12) {
     errors.push("TRACKINGHUB_ADMIN_PASSWORD 至少需要 12 个字符");
-  }
-
-  if (!config.allowLocalAdmin) {
-    if (config.email === DEFAULT_LOCAL_EMAIL) {
-      errors.push("生产初始化不能使用默认本地管理员邮箱");
-    }
-
-    if (config.password === DEFAULT_LOCAL_PASSWORD) {
-      errors.push("生产初始化不能使用默认本地管理员密码");
-    }
   }
 
   return errors;

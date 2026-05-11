@@ -58,11 +58,11 @@ export function ReportsWorkbench({
     preview.source === "clickhouse"
       ? "已连接真实 ClickHouse 数据"
       : preview.source === "sample"
-        ? "当前显示示例报告数据"
+        ? "当前显示占位报告数据"
         : "真实数据源不可用";
   const sourceDescription =
     preview.source === "unavailable"
-      ? "当前环境已禁止示例数据，请配置 ClickHouse 后再生成报告。"
+      ? "当前环境未读取到真实数据，请配置 ClickHouse 后再生成报告。"
       : "复用分析查询结果，作为日报、异常解释和漏斗掉点解释的输入数据。";
   const filterLabels = [
     preview.filters.projectId ? `项目 ${preview.filters.projectId}` : "全部项目",

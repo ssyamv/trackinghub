@@ -5,12 +5,5 @@ export function allowsSampleData(env: RuntimeEnv = process.env) {
     return true;
   }
 
-  if (
-    env.TRACKINGHUB_ALLOW_SAMPLE_DATA === "false" ||
-    env.TRACKINGHUB_REQUIRE_REAL_DATA === "true"
-  ) {
-    return false;
-  }
-
-  return env.NODE_ENV !== "production";
+  return false;
 }

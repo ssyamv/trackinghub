@@ -64,7 +64,7 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
               autoComplete="email"
               id="email"
               name="email"
-              placeholder="admin@example.com"
+              placeholder="name@company.com"
               required
               type="email"
             />

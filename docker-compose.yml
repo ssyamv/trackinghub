@@ -10,7 +10,6 @@ services:
     volumes:
       - trackinghub_postgres:/var/lib/postgresql/data
       - ./db/postgres/001_metadata_schema.sql:/docker-entrypoint-initdb.d/001_metadata_schema.sql:ro
-      - ./db/postgres/002_local_bootstrap_admin.sql:/docker-entrypoint-initdb.d/002_local_bootstrap_admin.sql:ro
       - ./db/postgres/003_event_validation_result_text_ids.sql:/docker-entrypoint-initdb.d/003_event_validation_result_text_ids.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trackinghub -d trackinghub"]
@@ -48,9 +47,6 @@ services:
       TRACKINGHUB_CLICKHOUSE_DATABASE: trackinghub
       TRACKINGHUB_CLICKHOUSE_USERNAME: writer
       TRACKINGHUB_CLICKHOUSE_PASSWORD: secret
-      TRACKINGHUB_MAGIC_FRAME_FLUTTER_TEST_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_TEST_WRITE_KEY:-test_magic_frame_app_write_key}
-      TRACKINGHUB_MAGIC_FRAME_FLUTTER_DEVELOP_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_DEVELOP_WRITE_KEY:-develop_magic_frame_app_write_key}
-      TRACKINGHUB_MAGIC_FRAME_FLUTTER_PRODUCTION_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_PRODUCTION_WRITE_KEY:-production_magic_frame_app_write_key}
       TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE: "true"
       TRACKINGHUB_REQUIRE_REAL_DATA: "true"
     depends_on:

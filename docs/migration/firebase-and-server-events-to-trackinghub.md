@@ -122,7 +122,7 @@ unawaited(
 3. 推送事件应使用 Magic Frame App 项目 UUID 作为 `project_id`、`source = flutter`，环境由服务端配置决定。
 4. 保持接口非阻塞；TrackingHub 写入失败时记录日志，不阻断推送打开或点击主流程。
 
-## 清除测试数据
+## 清理非正式数据
 
 正式切换前，只保留 `magic_frame_app` 项目和真实管理员账号。清理前先备份数据库，并确认生产 write key 已配置。
 
@@ -130,14 +130,14 @@ unawaited(
 
 ```bash
 TRACKINGHUB_POSTGRES_URL=postgres://trackinghub:trackinghub@localhost:15432/trackinghub \
-pnpm --filter web clear:demo-data
+pnpm --filter web clear:non-production-data
 ```
 
 确认无误后才执行删除：
 
 ```bash
 TRACKINGHUB_POSTGRES_URL=postgres://trackinghub:trackinghub@localhost:15432/trackinghub \
-pnpm --filter web clear:demo-data -- --confirm
+pnpm --filter web clear:non-production-data -- --confirm
 ```
 
 如果同时清理 ClickHouse 中非正式项目的事件行，显式加上 `--include-clickhouse` 并配置 ClickHouse 连接：
@@ -148,15 +148,15 @@ TRACKINGHUB_CLICKHOUSE_URL=http://localhost:18123 \
 TRACKINGHUB_CLICKHOUSE_DATABASE=trackinghub \
 TRACKINGHUB_CLICKHOUSE_USERNAME=writer \
 TRACKINGHUB_CLICKHOUSE_PASSWORD=secret \
-pnpm --filter web clear:demo-data -- --confirm --include-clickhouse
+pnpm --filter web clear:non-production-data -- --confirm --include-clickhouse
 ```
 
 推荐完整顺序：
 
-1. 停止写入测试环境或本地 demo 的客户端。
+1. 停止写入临时环境或本地客户端。
 2. 导出或备份 Postgres 和 ClickHouse。
-3. 运行 `pnpm --filter web clear:demo-data` dry-run，确认只会保留 `magic_frame_app`。
-4. 加 `--confirm` 删除非正式项目、演示 reports、演示 event definitions。
+3. 运行 `pnpm --filter web clear:non-production-data` dry-run，确认只会保留 `magic_frame_app`。
+4. 加 `--confirm` 删除非正式项目、reports 和 event definitions。
 5. 必要时加 `--include-clickhouse` 删除 ClickHouse 中非 Magic Frame App 项目 UUID 的 `raw_events` 和 `event_validation_results`；脚本会先从 Postgres 用 `magic_frame_app` slug 解析出保留项目 UUID。
 6. 重新运行 `/api/health`，确认 Postgres、ClickHouse、事件持久化和真实数据策略都是健康状态。
 

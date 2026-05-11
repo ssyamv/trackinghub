@@ -36,7 +36,7 @@ describe("evaluateHealth", () => {
       {
         name: "sampleData",
         status: "ok",
-        message: "当前环境不会回展示例数据",
+        message: "当前环境不会回显占位数据",
       },
     ]);
   });
@@ -89,7 +89,7 @@ describe("evaluateHealth", () => {
     });
   });
 
-  it("allows local sample mode with warnings", async () => {
+  it("keeps local sample mode off unless explicitly enabled", async () => {
     const health = await evaluateHealth({
       env: {
         NODE_ENV: "development",
@@ -101,8 +101,26 @@ describe("evaluateHealth", () => {
     expect(health.status).toBe("degraded");
     expect(health.checks).toContainEqual({
       name: "sampleData",
+      status: "ok",
+      message: "当前环境不会回显占位数据",
+    });
+  });
+
+  it("allows sample mode only with explicit opt-in", async () => {
+    const health = await evaluateHealth({
+      env: {
+        NODE_ENV: "development",
+        TRACKINGHUB_ALLOW_SAMPLE_DATA: "true",
+      },
+      pingPostgres: async () => true,
+      pingClickHouse: async () => true,
+    });
+
+    expect(health.status).toBe("degraded");
+    expect(health.checks).toContainEqual({
+      name: "sampleData",
       status: "warning",
-      message: "当前环境允许回展示例数据",
+      message: "当前环境允许回显占位数据",
     });
   });
 });

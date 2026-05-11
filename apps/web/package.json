@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
-    "clear:demo-data": "node scripts/clear-demo-data.mjs",
+    "clear:non-production-data": "node scripts/clear-non-production-data.mjs",
     "import:magic-frame": "node scripts/import-magic-frame-events.mjs",
     "start": "next start",
     "lint": "eslint",

@@ -36,7 +36,7 @@ function readKeepProjectSlugs(env, argv) {
   return slugs;
 }
 
-async function countPostgresDemoProjects(config) {
+async function countPostgresNonProductionProjects(config) {
   const pool = new Pool({ connectionString: config.databaseUrl });
   const client = await pool.connect();
 
@@ -52,7 +52,7 @@ async function countPostgresDemoProjects(config) {
   }
 }
 
-async function clearPostgresDemoProjects(config) {
+async function clearPostgresNonProductionProjects(config) {
   const pool = new Pool({ connectionString: config.databaseUrl });
   const client = await pool.connect();
 
@@ -134,7 +134,7 @@ async function queryClickHouse(config, query) {
   return text.trim();
 }
 
-async function countClickHouseDemoRows(config, keepProjectIds) {
+async function countClickHouseNonProductionRows(config, keepProjectIds) {
   const keepList = formatClickHouseKeepList(keepProjectIds);
   const rawEvents = await queryClickHouse(
     config,
@@ -151,7 +151,7 @@ async function countClickHouseDemoRows(config, keepProjectIds) {
   };
 }
 
-async function clearClickHouseDemoRows(config, keepProjectIds) {
+async function clearClickHouseNonProductionRows(config, keepProjectIds) {
   const keepList = formatClickHouseKeepList(keepProjectIds);
   await queryClickHouse(
     config,
@@ -171,9 +171,10 @@ async function main() {
     process.exit(1);
   }
 
-  const postgresProjectCount = await countPostgresDemoProjects(config);
+  const postgresProjectCount =
+    await countPostgresNonProductionProjects(config);
   console.log(
-    `Postgres demo projects to delete: ${postgresProjectCount}; keeping ${config.keepProjectSlugs.join(", ")}`,
+    `Postgres non-production projects to delete: ${postgresProjectCount}; keeping ${config.keepProjectSlugs.join(", ")}`,
   );
 
   if (config.includeClickHouse) {
@@ -185,26 +186,29 @@ async function main() {
     const keepProjectIds = await listKeptProjectIds(config);
     console.log(`ClickHouse keeping project ids: ${keepProjectIds.join(", ")}`);
 
-    const clickHouseCounts = await countClickHouseDemoRows(config, keepProjectIds);
+    const clickHouseCounts = await countClickHouseNonProductionRows(
+      config,
+      keepProjectIds,
+    );
     console.log(
       `ClickHouse rows to delete: raw_events=${clickHouseCounts.rawEvents}, event_validation_results=${clickHouseCounts.validationResults}`,
     );
   }
 
   if (config.dryRun) {
-    console.log("Dry run only. Add --confirm to delete demo data.");
+    console.log("Dry run only. Add --confirm to delete non-production data.");
     return;
   }
 
-  const deletedProjects = await clearPostgresDemoProjects(config);
+  const deletedProjects = await clearPostgresNonProductionProjects(config);
   console.log(
-    `Deleted Postgres demo projects: ${deletedProjects.length > 0 ? deletedProjects.join(", ") : "none"}`,
+    `Deleted Postgres non-production projects: ${deletedProjects.length > 0 ? deletedProjects.join(", ") : "none"}`,
   );
 
   if (config.includeClickHouse) {
     const keepProjectIds = await listKeptProjectIds(config);
-    await clearClickHouseDemoRows(config, keepProjectIds);
-    console.log("Submitted ClickHouse demo row cleanup mutations.");
+    await clearClickHouseNonProductionRows(config, keepProjectIds);
+    console.log("Submitted ClickHouse non-production row cleanup mutations.");
   }
 }
 
