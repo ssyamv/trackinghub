@@ -40,6 +40,35 @@ describe("createEventWriterFromEnv", () => {
     await expect(writer.writeRawEvent(event)).resolves.toBeUndefined();
   });
 
+  it("rejects event writes when production persistence is required but ClickHouse is not configured", async () => {
+    const writer = createEventWriterFromEnv(
+      {
+        NODE_ENV: "production",
+      },
+      async () => {
+        throw new Error("fetch should not be called");
+      },
+    );
+
+    await expect(writer.writeRawEvent(event)).rejects.toThrow(
+      "ClickHouse event persistence is not configured",
+    );
+    await expect(
+      writer.writeValidationResult({
+        id: "validation_event_123",
+        project_id: "project_x",
+        event_definition_id: "pay_button_click",
+        event_name: "pay_button_click",
+        environment: "prod",
+        source: "web",
+        status: "valid",
+        errors: [],
+        sample_event_id: "event_123",
+        observed_at: "2026-05-10T07:30:00.000Z",
+      }),
+    ).rejects.toThrow("ClickHouse event persistence is not configured");
+  });
+
   it("inserts raw events into ClickHouse using JSONEachRow", async () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     const writer = createEventWriterFromEnv(
@@ -75,8 +104,8 @@ describe("createEventWriterFromEnv", () => {
       anonymous_id: "anon_123",
       device_id: "device_456",
       session_id: "session_789",
-      timestamp: "2024-03-09T16:00:00.000Z",
-      received_at: "2026-05-10T07:30:00.000Z",
+      timestamp: "2024-03-09 16:00:00.000",
+      received_at: "2026-05-10 07:30:00.000",
       app_version: "1.2.0",
       sdk_version: "0.1.0",
       channel: "google",
@@ -125,7 +154,7 @@ describe("createEventWriterFromEnv", () => {
       status: "invalid",
       errors: JSON.stringify(["price must be number"]),
       sample_event_id: "event_123",
-      observed_at: "2026-05-10T07:30:00.000Z",
+      observed_at: "2026-05-10 07:30:00.000",
     });
   });
 });

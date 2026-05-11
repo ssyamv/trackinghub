@@ -24,13 +24,17 @@ export function canManageSdkKeys(role: UserRole) {
   return role === "admin";
 }
 
-export function assertCanRead(user: AuthenticatedUser | null) {
+export function assertCanRead(
+  user: AuthenticatedUser | null,
+): asserts user is AuthenticatedUser {
   if (!user) {
     throw new AuthError("UNAUTHENTICATED");
   }
 }
 
-export function assertCanWrite(user: AuthenticatedUser | null) {
+export function assertCanWrite(
+  user: AuthenticatedUser | null,
+): asserts user is AuthenticatedUser {
   if (!user) {
     throw new AuthError("UNAUTHENTICATED");
   }
@@ -40,7 +44,9 @@ export function assertCanWrite(user: AuthenticatedUser | null) {
   }
 }
 
-export function assertCanManageSdkKeys(user: AuthenticatedUser | null) {
+export function assertCanManageSdkKeys(
+  user: AuthenticatedUser | null,
+): asserts user is AuthenticatedUser {
   if (!user) {
     throw new AuthError("UNAUTHENTICATED");
   }

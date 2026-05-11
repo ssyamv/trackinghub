@@ -112,7 +112,7 @@ export function ProjectManagementWorkbench({
           <CardHeader>
             <CardTitle className="text-xl tracking-normal">环境配置</CardTitle>
             <CardDescription>
-              跟踪 dev、staging、prod 的接收状态和写入开关。
+              跟踪各项目环境的接收状态和写入开关。
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -45,6 +45,10 @@ function environmentWriteKeyStatus(
   return "停用";
 }
 
+function isProductionEnvironment(environmentName: string) {
+  return environmentName === "prod" || environmentName === "production";
+}
+
 export function mapProjectsOverviewToWorkbench(
   overview: ProjectsOverview,
 ): ProjectManagementWorkbenchProps {
@@ -60,10 +64,10 @@ export function mapProjectsOverviewToWorkbench(
         label: "生产环境",
         value: String(
           overview.environments.filter(
-            (item) => item.name === "prod" && item.enabled,
+            (item) => isProductionEnvironment(item.name) && item.enabled,
           ).length,
         ),
-        detail: "已启用 prod 环境",
+        detail: "已启用生产环境",
         tone: "green",
       },
       {

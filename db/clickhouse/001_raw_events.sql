@@ -1,3 +1,7 @@
+CREATE DATABASE IF NOT EXISTS trackinghub;
+
+USE trackinghub;
+
 CREATE TABLE IF NOT EXISTS raw_events
 (
   event_id UUID DEFAULT generateUUIDv4(),
@@ -22,12 +26,12 @@ CREATE TABLE IF NOT EXISTS raw_events
 ENGINE = MergeTree
 PARTITION BY toYYYYMM(timestamp)
 ORDER BY (project_id, environment, event_name, timestamp)
-TTL timestamp + INTERVAL 400 DAY
+TTL toDateTime(timestamp) + INTERVAL 400 DAY
 SETTINGS index_granularity = 8192;
 
 CREATE TABLE IF NOT EXISTS event_validation_results
 (
-  id UUID DEFAULT generateUUIDv4(),
+  id String,
   project_id String,
   event_definition_id Nullable(String),
   event_name LowCardinality(String),
@@ -41,5 +45,5 @@ CREATE TABLE IF NOT EXISTS event_validation_results
 ENGINE = MergeTree
 PARTITION BY toYYYYMM(observed_at)
 ORDER BY (project_id, event_name, environment, source, observed_at)
-TTL observed_at + INTERVAL 400 DAY
+TTL toDateTime(observed_at) + INTERVAL 400 DAY
 SETTINGS index_granularity = 8192;

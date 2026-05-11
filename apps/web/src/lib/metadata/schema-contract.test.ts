@@ -17,6 +17,13 @@ const validationResultIdMigration = readFileSync(
   ),
   "utf8",
 );
+const magicFrameEnvironmentMigration = readFileSync(
+  path.resolve(
+    process.cwd(),
+    "../../db/postgres/004_magic_frame_environment_names.sql",
+  ),
+  "utf8",
+);
 
 describe("metadata postgres schema", () => {
   it("defines local auth tables and role checks", () => {
@@ -32,6 +39,9 @@ describe("metadata postgres schema", () => {
     expect(schema).toContain("source TEXT NOT NULL CHECK (source IN ('web', 'flutter'))");
     expect(schema).toContain("key_hash TEXT NOT NULL");
     expect(schema).toContain("masked_key TEXT NOT NULL");
+    expect(schema).toContain(
+      "name TEXT NOT NULL CHECK (name IN ('dev', 'staging', 'prod', 'test', 'develop', 'production'))",
+    );
   });
 
   it("supports governance acceptance and ready event definitions", () => {
@@ -46,6 +56,18 @@ describe("metadata postgres schema", () => {
     );
     expect(validationResultIdMigration).toContain(
       "ALTER COLUMN id TYPE TEXT USING id::text",
+    );
+  });
+
+  it("documents the Magic Frame App environment migration for existing databases", () => {
+    expect(magicFrameEnvironmentMigration).toContain(
+      "project_environments_name_check",
+    );
+    expect(magicFrameEnvironmentMigration).toContain(
+      "event_validation_results_environment_check",
+    );
+    expect(magicFrameEnvironmentMigration).toContain(
+      "'test', 'develop', 'production'",
     );
   });
 

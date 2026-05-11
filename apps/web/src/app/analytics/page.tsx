@@ -14,6 +14,7 @@ import {
   analyticsTrendItems,
   pageShells,
 } from "@/lib/trackinghub/sample-data";
+import { allowsSampleData } from "@/lib/runtime/sample-data-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +32,17 @@ async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
     funnelSteps: analyticsFunnelSteps,
     trendItems: analyticsTrendItems,
   };
+  const unavailable = {
+    source: "unavailable" as const,
+    metrics: [],
+    templates: analyticsTemplateItems,
+    funnelSteps: [],
+    trendItems: [],
+  };
   const client = createClickHouseAnalyticsClientFromEnv();
 
   if (!client) {
-    return fallback;
+    return allowsSampleData() ? fallback : unavailable;
   }
 
   try {
@@ -44,7 +52,7 @@ async function getAnalyticsWorkbench(filters: AnalyticsFilters) {
       templates: analyticsTemplateItems,
     };
   } catch {
-    return fallback;
+    return allowsSampleData() ? fallback : unavailable;
   }
 }
 

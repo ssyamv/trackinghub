@@ -1,12 +1,65 @@
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
 typedef TrackingHubTransport = Future<void> Function(
   Uri endpoint,
   Map<String, Object?> body,
   Map<String, String> headers,
 );
 
+class TrackingHubTransportException implements Exception {
+  const TrackingHubTransportException({
+    required this.statusCode,
+    required this.responseBody,
+  });
+
+  final int statusCode;
+  final String responseBody;
+
+  @override
+  String toString() {
+    return 'TrackingHubTransportException(statusCode: $statusCode, responseBody: $responseBody)';
+  }
+}
+
+class TrackingHubHttpTransport {
+  TrackingHubHttpTransport({HttpClient? client})
+      : _client = client ?? HttpClient();
+
+  final HttpClient _client;
+
+  Future<void> call(
+    Uri endpoint,
+    Map<String, Object?> body,
+    Map<String, String> headers,
+  ) async {
+    final request = await _client.postUrl(endpoint);
+    for (final entry in headers.entries) {
+      request.headers.set(entry.key, entry.value);
+    }
+    request.write(jsonEncode(body));
+    final response = await request.close();
+    final responseBody = await utf8.decoder.bind(response).join();
+
+    if (response.statusCode < 200 || response.statusCode >= 400) {
+      throw TrackingHubTransportException(
+        statusCode: response.statusCode,
+        responseBody: responseBody,
+      );
+    }
+  }
+
+  void close() {
+    _client.close(force: true);
+  }
+}
+
 enum TrackingHubEnvironment {
+  test('test'),
+  develop('develop'),
+  production('production'),
   dev('dev'),
   staging('staging'),
   prod('prod');

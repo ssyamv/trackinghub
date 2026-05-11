@@ -1,5 +1,11 @@
 export type TrackingSource = "web" | "flutter";
-export type TrackingEnvironment = "dev" | "staging" | "prod";
+export type TrackingEnvironment =
+  | "dev"
+  | "staging"
+  | "prod"
+  | "test"
+  | "develop"
+  | "production";
 export type JsonObject = Record<string, unknown>;
 
 export type TrackingEnvelope = {
@@ -38,7 +44,14 @@ function isRecord(input: unknown): input is Record<string, unknown> {
 }
 
 function isAllowedEnvironment(value: unknown): value is TrackingEnvironment {
-  return value === "dev" || value === "staging" || value === "prod";
+  return (
+    value === "dev" ||
+    value === "staging" ||
+    value === "prod" ||
+    value === "test" ||
+    value === "develop" ||
+    value === "production"
+  );
 }
 
 function isAllowedSource(value: unknown): value is TrackingSource {
@@ -66,7 +79,7 @@ export function validateTrackingEnvelope(input: unknown): ValidationResult {
     typeof input.environment === "string" &&
     !isAllowedEnvironment(input.environment)
   ) {
-    errors.push("environment must be one of dev, staging, prod");
+    errors.push("environment must be one of dev, staging, prod, test, develop, production");
   }
 
   if (!Number.isFinite(input.timestamp)) {

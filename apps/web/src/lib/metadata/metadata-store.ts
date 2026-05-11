@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 
 export type PlatformSource = "web" | "flutter";
-export type ProjectEnvironmentName = "dev" | "staging" | "prod";
+export type ProjectEnvironmentName =
+  | "dev"
+  | "staging"
+  | "prod"
+  | "test"
+  | "develop"
+  | "production";
 export type SdkKeyStatus = "active" | "rotating" | "disabled";
 export type EventDefinitionStatus =
   | "draft"
@@ -101,6 +107,14 @@ export type EventAcceptanceRecord = {
 };
 
 export type EventValidationStatus = "valid" | "invalid" | "unknown_event";
+export type ReportType =
+  | "daily"
+  | "weekly"
+  | "anomaly"
+  | "version_comparison"
+  | "campaign_comparison"
+  | "funnel_dropoff"
+  | "schema_quality";
 
 export type EventValidationResultInput = {
   id: string;
@@ -143,6 +157,30 @@ export type ProjectsOverview = {
 export type GovernanceOverview = {
   definitions: EventDefinitionRecord[];
   validationResults?: EventValidationResultRecord[];
+};
+
+export type ReportSourceQueryRef = Record<string, unknown>;
+
+export type ReportRecord = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  type: ReportType;
+  title: string;
+  content: string;
+  sourceQueryRefs: ReportSourceQueryRef[];
+  generatedBy: string;
+  generatedAt: string;
+};
+
+export type ReportInput = {
+  projectId: string;
+  type: ReportType;
+  title: string;
+  content: string;
+  sourceQueryRefs: ReportSourceQueryRef[];
+  generatedBy: string;
+  generatedAt?: string;
 };
 
 export type MetadataStore = {
@@ -204,6 +242,8 @@ export type MetadataStore = {
       note: string;
     },
   ): Promise<EventAcceptanceRecord>;
+  createReport(input: ReportInput): Promise<ReportRecord>;
+  listReports(projectId: string): Promise<ReportRecord[]>;
 };
 
 function cloneProject(project: ProjectRecord): ProjectRecord {
@@ -270,6 +310,17 @@ function cloneValidationResult(
   };
 }
 
+function cloneSourceQueryRefs(refs: ReportSourceQueryRef[]) {
+  return JSON.parse(JSON.stringify(refs)) as ReportSourceQueryRef[];
+}
+
+function cloneReport(report: ReportRecord): ReportRecord {
+  return {
+    ...report,
+    sourceQueryRefs: cloneSourceQueryRefs(report.sourceQueryRefs),
+  };
+}
+
 export function createMemoryMetadataStore(): MetadataStore {
   const projects: ProjectRecord[] = [];
   const environments: ProjectEnvironmentRecord[] = [];
@@ -277,11 +328,13 @@ export function createMemoryMetadataStore(): MetadataStore {
   const definitions: EventDefinitionRecord[] = [];
   const validationResults: EventValidationResultRecord[] = [];
   const acceptanceRecords: EventAcceptanceRecord[] = [];
+  const reports: ReportRecord[] = [];
   let projectSequence = 1;
   let environmentSequence = 1;
   let sdkKeySequence = 1;
   let eventDefinitionSequence = 1;
   let acceptanceSequence = 1;
+  let reportSequence = 1;
 
   function findProject(projectId: string): ProjectRecord {
     const project = projects.find((item) => item.id === projectId);
@@ -520,6 +573,36 @@ export function createMemoryMetadataStore(): MetadataStore {
       }
 
       return { ...acceptanceRecord };
+    },
+
+    async createReport(input) {
+      const project = findProject(input.projectId);
+      const report: ReportRecord = {
+        id: `report_${reportSequence++}`,
+        projectId: input.projectId,
+        projectName: project.name,
+        type: input.type,
+        title: input.title,
+        content: input.content,
+        sourceQueryRefs: cloneSourceQueryRefs(input.sourceQueryRefs),
+        generatedBy: input.generatedBy,
+        generatedAt: input.generatedAt ?? new Date().toISOString(),
+      };
+
+      reports.push(report);
+
+      return cloneReport(report);
+    },
+
+    async listReports(projectId) {
+      findProject(projectId);
+
+      return reports
+        .filter((report) => report.projectId === projectId)
+        .toSorted((left, right) =>
+          right.generatedAt.localeCompare(left.generatedAt),
+        )
+        .map(cloneReport);
     },
   };
 }

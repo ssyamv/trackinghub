@@ -37,6 +37,15 @@ describe("validateTrackingEnvelope", () => {
     });
   });
 
+  it("accepts Magic Frame App production environment names", () => {
+    const payload = { ...validPayload, environment: "production" };
+
+    expect(validateTrackingEnvelope(payload)).toEqual({
+      ok: true,
+      value: payload,
+    });
+  });
+
   it("rejects missing required fields", () => {
     const payload: Record<string, unknown> = { ...validPayload };
     delete payload.event_name;

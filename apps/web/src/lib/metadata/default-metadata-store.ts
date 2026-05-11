@@ -12,6 +12,9 @@ import {
   type ProjectEnvironmentName,
   type ProjectEnvironmentRecord,
   type ProjectRecord,
+  type ReportInput,
+  type ReportRecord,
+  type ReportType,
   type SdkKeyRecord,
   type SdkKeyStatus,
 } from "./metadata-store";
@@ -86,6 +89,18 @@ type EventValidationResultRow = QueryResultRow & {
 type ProjectLookupRow = QueryResultRow & {
   id: string;
   name: string;
+};
+
+type ReportRow = QueryResultRow & {
+  id: string;
+  project_id: string;
+  project_name: string;
+  type: ReportType;
+  title: string;
+  content: string;
+  source_query_refs: unknown;
+  generated_by: string;
+  generated_at: Date | string;
 };
 
 function toIsoString(value: Date | string | null | undefined) {
@@ -191,6 +206,25 @@ export function toEventValidationResultRecord(
       row.observed_at instanceof Date
         ? row.observed_at.toISOString()
         : row.observed_at,
+  };
+}
+
+export function toReportRecord(row: ReportRow): ReportRecord {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    projectName: row.project_name,
+    type: row.type,
+    title: row.title,
+    content: row.content,
+    sourceQueryRefs: Array.isArray(row.source_query_refs)
+      ? (row.source_query_refs as ReportRecord["sourceQueryRefs"])
+      : [],
+    generatedBy: row.generated_by,
+    generatedAt:
+      row.generated_at instanceof Date
+        ? row.generated_at.toISOString()
+        : row.generated_at,
   };
 }
 
@@ -311,7 +345,7 @@ export const defaultMetadataStore: MetadataStore = {
            LEFT JOIN event_validation_results
              ON event_validation_results.project_id = project_environments.project_id
             AND event_validation_results.environment = project_environments.name
-          GROUP BY project_environments.id, projects.name
+          GROUP BY project_environments.id, projects.name, projects.created_at
           ORDER BY projects.created_at DESC, project_environments.name ASC`,
       ),
       queryPostgres<SdkKeyRow>(
@@ -755,5 +789,69 @@ export const defaultMetadataStore: MetadataStore = {
       status: result.rows[0].status,
       note: result.rows[0].note,
     };
+  },
+
+  async createReport(input: ReportInput) {
+    await findProject(input.projectId);
+    const result = await queryPostgres<ReportRow>(
+      `WITH inserted AS (
+         INSERT INTO reports
+          (project_id, type, title, content, source_query_refs, generated_by, generated_at)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6, coalesce($7::timestamptz, now()))
+         RETURNING id,
+                   project_id,
+                   type,
+                   title,
+                   content,
+                   source_query_refs,
+                   generated_by,
+                   generated_at
+       )
+       SELECT inserted.id,
+              inserted.project_id,
+              projects.name AS project_name,
+              inserted.type,
+              inserted.title,
+              inserted.content,
+              inserted.source_query_refs,
+              inserted.generated_by,
+              inserted.generated_at
+         FROM inserted
+         JOIN projects ON projects.id = inserted.project_id`,
+      [
+        input.projectId,
+        input.type,
+        input.title,
+        input.content,
+        JSON.stringify(input.sourceQueryRefs),
+        input.generatedBy,
+        input.generatedAt ?? null,
+      ],
+    );
+
+    return toReportRecord(result.rows[0]);
+  },
+
+  async listReports(projectId: string) {
+    await findProject(projectId);
+    const result = await queryPostgres<ReportRow>(
+      `SELECT reports.id,
+              reports.project_id,
+              projects.name AS project_name,
+              reports.type,
+              reports.title,
+              reports.content,
+              reports.source_query_refs,
+              reports.generated_by,
+              reports.generated_at
+         FROM reports
+         JOIN projects ON projects.id = reports.project_id
+        WHERE reports.project_id = $1
+        ORDER BY reports.generated_at DESC
+        LIMIT 50`,
+      [projectId],
+    );
+
+    return result.rows.map(toReportRecord);
   },
 };

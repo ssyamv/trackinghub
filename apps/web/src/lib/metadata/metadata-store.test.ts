@@ -222,6 +222,49 @@ describe("metadata store contract", () => {
     });
   });
 
+  it("persists generated reports with source query references", async () => {
+    const store = createMemoryMetadataStore();
+    const project = await store.createProject({
+      name: "Magic Frame",
+      slug: "magic-frame",
+      description: "AI 相框分析",
+      ownerName: "增长产品",
+      platforms: ["web"],
+    });
+
+    const report = await store.createReport({
+      projectId: project.id,
+      type: "daily",
+      title: "Magic Frame 生产日报",
+      content: "今日事件量 2.7k，异常占比 3.4%。",
+      sourceQueryRefs: [
+        {
+          source: "clickhouse",
+          range: "7d",
+          environment: "prod",
+          funnelSteps: ["product_detail_view", "pay_button_click"],
+        },
+      ],
+      generatedBy: "codex",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    });
+
+    const reports = await store.listReports(project.id);
+
+    expect(report).toMatchObject({
+      projectId: project.id,
+      projectName: "Magic Frame",
+      type: "daily",
+      title: "Magic Frame 生产日报",
+      generatedBy: "codex",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    });
+    expect(reports).toEqual([report]);
+
+    reports[0].sourceQueryRefs.push({ changed: true });
+    await expect(store.listReports(project.id)).resolves.toEqual([report]);
+  });
+
   it("does not expose internal project references from list results", async () => {
     const store = createMemoryMetadataStore();
     await store.createProject({

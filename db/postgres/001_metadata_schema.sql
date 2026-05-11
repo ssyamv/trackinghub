@@ -43,7 +43,7 @@ CREATE TABLE projects (
 CREATE TABLE project_environments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  name TEXT NOT NULL CHECK (name IN ('dev', 'staging', 'prod')),
+  name TEXT NOT NULL CHECK (name IN ('dev', 'staging', 'prod', 'test', 'develop', 'production')),
   write_key_hash TEXT NOT NULL,
   enabled BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -142,7 +142,7 @@ CREATE TABLE event_validation_results (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   event_definition_id UUID REFERENCES event_definitions(id) ON DELETE SET NULL,
   event_name TEXT NOT NULL,
-  environment TEXT NOT NULL CHECK (environment IN ('dev', 'staging', 'prod')),
+  environment TEXT NOT NULL CHECK (environment IN ('dev', 'staging', 'prod', 'test', 'develop', 'production')),
   source TEXT NOT NULL CHECK (source IN ('web', 'flutter')),
   status TEXT NOT NULL CHECK (status IN ('valid', 'invalid', 'unknown_event')),
   errors JSONB NOT NULL DEFAULT '[]'::jsonb,

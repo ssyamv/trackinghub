@@ -355,4 +355,29 @@ describe("POST /api/events", () => {
       errors: ["event persistence is unavailable"],
     });
   });
+
+  it("does not accept events when production persistence is not configured", async () => {
+    const response = await handleEventPost(
+      new Request("http://localhost/api/events", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+      {
+        eventWriter: {
+          writeRawEvent: async () => {
+            throw new Error("ClickHouse event persistence is not configured");
+          },
+          writeValidationResult: async () => undefined,
+        },
+        createEventId: () => "event_123",
+        now: () => new Date("2026-05-10T07:30:00.000Z"),
+      },
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      accepted: false,
+      errors: ["event persistence is unavailable"],
+    });
+  });
 });

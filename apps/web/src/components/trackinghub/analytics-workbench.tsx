@@ -59,10 +59,18 @@ export function AnalyticsWorkbench({
   templates: AnalyticsTemplateItem[];
   funnelSteps: AnalyticsFunnelStep[];
   trendItems: AnalyticsTrendItem[];
-  source: "clickhouse" | "sample";
+  source: "clickhouse" | "sample" | "unavailable";
 }) {
   const sourceLabel =
-    source === "clickhouse" ? "已连接真实 ClickHouse 数据" : "当前显示示例数据";
+    source === "clickhouse"
+      ? "已连接真实 ClickHouse 数据"
+      : source === "sample"
+        ? "当前显示示例数据"
+        : "真实数据源不可用";
+  const sourceDescription =
+    source === "unavailable"
+      ? "当前环境已禁止示例数据，请配置 ClickHouse 后再查看真实分析。"
+      : "优先读取 ClickHouse raw_events；未配置或查询失败时回落示例数据。";
 
   return (
     <div className="space-y-6">
@@ -70,10 +78,18 @@ export function AnalyticsWorkbench({
         <div>
           <div className="text-sm font-semibold">分析数据源</div>
           <p className="mt-1 text-sm text-muted-foreground">
-            优先读取 ClickHouse raw_events；未配置或查询失败时回落示例数据。
+            {sourceDescription}
           </p>
         </div>
-        <Badge variant={source === "clickhouse" ? "default" : "outline"}>
+        <Badge
+          variant={
+            source === "clickhouse"
+              ? "default"
+              : source === "unavailable"
+                ? "destructive"
+                : "outline"
+          }
+        >
           {sourceLabel}
         </Badge>
       </div>
@@ -166,15 +182,21 @@ export function AnalyticsWorkbench({
       </form>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard
-            detail={metric.detail}
-            key={metric.label}
-            label={metric.label}
-            tone={metric.tone}
-            value={metric.value}
-          />
-        ))}
+        {metrics.length > 0 ? (
+          metrics.map((metric) => (
+            <MetricCard
+              detail={metric.detail}
+              key={metric.label}
+              label={metric.label}
+              tone={metric.tone}
+              value={metric.value}
+            />
+          ))
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground md:col-span-2 xl:col-span-4">
+            暂不能生成指标卡片。
+          </div>
+        )}
       </section>
 
       <Card>
@@ -269,28 +291,34 @@ export function AnalyticsWorkbench({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>步骤</TableHead>
-                <TableHead>事件</TableHead>
-                <TableHead>用户数</TableHead>
-                <TableHead>转化率</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {funnelSteps.map((step) => (
-                <TableRow key={step.step}>
-                  <TableCell>{step.step}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {step.eventName}
-                  </TableCell>
-                  <TableCell>{step.users}</TableCell>
-                  <TableCell>{step.conversion}</TableCell>
+          {funnelSteps.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>步骤</TableHead>
+                  <TableHead>事件</TableHead>
+                  <TableHead>用户数</TableHead>
+                  <TableHead>转化率</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {funnelSteps.map((step) => (
+                  <TableRow key={step.step}>
+                    <TableCell>{step.step}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {step.eventName}
+                    </TableCell>
+                    <TableCell>{step.users}</TableCell>
+                    <TableCell>{step.conversion}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+              当前筛选范围暂无漏斗数据。
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

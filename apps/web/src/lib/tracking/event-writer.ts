@@ -58,8 +58,28 @@ const noopEventWriter: EventWriter = {
   },
 };
 
+const unavailableEventWriter: EventWriter = {
+  async writeRawEvent() {
+    throw new Error("ClickHouse event persistence is not configured");
+  },
+  async writeValidationResult() {
+    throw new Error("ClickHouse event persistence is not configured");
+  },
+};
+
+function requiresEventPersistence(env: EventWriterEnv) {
+  return (
+    env.NODE_ENV === "production" ||
+    env.TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE === "true"
+  );
+}
+
 function nullable(value: string | undefined) {
   return value ?? null;
+}
+
+function toClickHouseDateTime64(value: number | string) {
+  return new Date(value).toISOString().replace("T", " ").replace("Z", "");
 }
 
 function toClickHouseRow(event: PersistedTrackingEvent) {
@@ -73,8 +93,8 @@ function toClickHouseRow(event: PersistedTrackingEvent) {
     anonymous_id: nullable(event.anonymous_id),
     device_id: nullable(event.device_id),
     session_id: nullable(event.session_id),
-    timestamp: new Date(event.timestamp).toISOString(),
-    received_at: event.received_at,
+    timestamp: toClickHouseDateTime64(event.timestamp),
+    received_at: toClickHouseDateTime64(event.received_at),
     app_version: nullable(event.app_version),
     sdk_version: event.sdk_version,
     channel: nullable(event.channel),
@@ -96,7 +116,7 @@ function toValidationResultRow(result: PersistedValidationResult) {
     status: result.status,
     errors: JSON.stringify(result.errors),
     sample_event_id: result.sample_event_id,
-    observed_at: result.observed_at,
+    observed_at: toClickHouseDateTime64(result.observed_at),
   };
 }
 
@@ -137,6 +157,10 @@ export function createEventWriterFromEnv(
     env.TRACKINGHUB_CLICKHOUSE_URL ?? env.CLICKHOUSE_URL;
 
   if (!clickHouseUrl) {
+    if (requiresEventPersistence(env)) {
+      return unavailableEventWriter;
+    }
+
     return noopEventWriter;
   }
 

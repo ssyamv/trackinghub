@@ -204,6 +204,23 @@ describe("default metadata store mappers", () => {
     expect(definitionValues).toEqual(["project_1", "photo_shared", "web"]);
   });
 
+  it("groups environment overview by every project column used for ordering", async () => {
+    queryPostgresMock
+      .mockResolvedValueOnce({ rows: [] } as never)
+      .mockResolvedValueOnce({ rows: [] } as never)
+      .mockResolvedValueOnce({ rows: [] } as never);
+
+    await defaultMetadataStore.listProjectsOverview();
+
+    const [environmentSql] = queryPostgresMock.mock.calls[1];
+    expect(environmentSql).toContain(
+      "GROUP BY project_environments.id, projects.name, projects.created_at",
+    );
+    expect(environmentSql).toContain(
+      "ORDER BY projects.created_at DESC, project_environments.name ASC",
+    );
+  });
+
   it("upserts validation results into Postgres for governance reads", async () => {
     queryPostgresMock.mockResolvedValueOnce({ rows: [] } as never);
 

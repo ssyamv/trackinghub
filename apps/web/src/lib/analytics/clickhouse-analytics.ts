@@ -12,7 +12,7 @@ export const DEFAULT_FUNNEL_EVENTS = [
 ] as const;
 
 export type AnalyticsData = {
-  source: "clickhouse" | "sample";
+  source: "clickhouse" | "sample" | "unavailable";
   metrics: StatusCard[];
   trendItems: AnalyticsTrendItem[];
   funnelSteps: AnalyticsFunnelStep[];
@@ -44,6 +44,7 @@ export type AnalyticsFilterInput = Partial<{
   funnel_steps: unknown;
   granularity: unknown;
   range: unknown;
+  report_action: unknown;
 }>;
 
 export type ClickHouseAnalyticsClient = {

@@ -1,4 +1,10 @@
-export type TrackingHubEnvironment = "dev" | "staging" | "prod";
+export type TrackingHubEnvironment =
+  | "dev"
+  | "staging"
+  | "prod"
+  | "test"
+  | "develop"
+  | "production";
 
 export type TrackingHubContext = Record<string, unknown>;
 export type TrackingHubProperties = Record<string, unknown>;

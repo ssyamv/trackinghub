@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: trackinghub
+      POSTGRES_USER: trackinghub
+      POSTGRES_PASSWORD: trackinghub
+    ports:
+      - "${TRACKINGHUB_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - trackinghub_postgres:/var/lib/postgresql/data
+      - ./db/postgres/001_metadata_schema.sql:/docker-entrypoint-initdb.d/001_metadata_schema.sql:ro
+      - ./db/postgres/002_local_bootstrap_admin.sql:/docker-entrypoint-initdb.d/002_local_bootstrap_admin.sql:ro
+      - ./db/postgres/003_event_validation_result_text_ids.sql:/docker-entrypoint-initdb.d/003_event_validation_result_text_ids.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trackinghub -d trackinghub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.3-alpine
+    environment:
+      CLICKHOUSE_DB: trackinghub
+      CLICKHOUSE_USER: writer
+      CLICKHOUSE_PASSWORD: secret
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${TRACKINGHUB_CLICKHOUSE_HTTP_PORT:-18123}:8123"
+      - "${TRACKINGHUB_CLICKHOUSE_NATIVE_PORT:-19000}:9000"
+    volumes:
+      - trackinghub_clickhouse:/var/lib/clickhouse
+      - ./db/clickhouse/001_raw_events.sql:/docker-entrypoint-initdb.d/001_raw_events.sql:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      TRACKINGHUB_POSTGRES_URL: postgres://trackinghub:trackinghub@postgres:5432/trackinghub
+      TRACKINGHUB_CLICKHOUSE_URL: http://clickhouse:8123
+      TRACKINGHUB_CLICKHOUSE_DATABASE: trackinghub
+      TRACKINGHUB_CLICKHOUSE_USERNAME: writer
+      TRACKINGHUB_CLICKHOUSE_PASSWORD: secret
+      TRACKINGHUB_MAGIC_FRAME_FLUTTER_TEST_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_TEST_WRITE_KEY:-test_magic_frame_app_write_key}
+      TRACKINGHUB_MAGIC_FRAME_FLUTTER_DEVELOP_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_DEVELOP_WRITE_KEY:-develop_magic_frame_app_write_key}
+      TRACKINGHUB_MAGIC_FRAME_FLUTTER_PRODUCTION_WRITE_KEY: ${TRACKINGHUB_MAGIC_FRAME_FLUTTER_PRODUCTION_WRITE_KEY:-production_magic_frame_app_write_key}
+      TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE: "true"
+      TRACKINGHUB_REQUIRE_REAL_DATA: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${TRACKINGHUB_WEB_PORT:-3000}:3000"
+
+volumes:
+  trackinghub_postgres:
+  trackinghub_clickhouse:

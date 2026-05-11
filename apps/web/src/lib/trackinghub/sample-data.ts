@@ -99,7 +99,7 @@ export type ProjectItem = {
 
 export type ProjectEnvironmentItem = {
   project: string;
-  name: "dev" | "staging" | "prod";
+  name: "dev" | "staging" | "prod" | "test" | "develop" | "production";
   enabled: boolean;
   lastEventAt: string;
   writeKeyStatus: string;
