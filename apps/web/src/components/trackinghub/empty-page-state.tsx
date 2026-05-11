@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -11,7 +10,6 @@ import {
 export type EmptyPageStateProps = {
   badge: string;
   title: string;
-  description: string;
   action?: ReactNode;
   sections: string[];
 };
@@ -19,7 +17,6 @@ export type EmptyPageStateProps = {
 export function EmptyPageState({
   badge,
   title,
-  description,
   action,
   sections,
 }: EmptyPageStateProps) {
@@ -30,9 +27,6 @@ export function EmptyPageState({
           {badge}
         </Badge>
         <CardTitle className="text-2xl tracking-normal">{title}</CardTitle>
-        <CardDescription className="max-w-2xl text-[15px] leading-7">
-          {description}
-        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

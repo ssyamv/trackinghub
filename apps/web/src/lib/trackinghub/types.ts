@@ -1,7 +1,6 @@
 export type NavItem = {
   href: string;
   label: string;
-  description: string;
 };
 
 export type StatusCard = {
@@ -25,7 +24,6 @@ export type AcceptanceItem = {
 export type PageShell = {
   title: string;
   eyebrow: string;
-  description: string;
   badge: string;
   actionLabel: string;
   sections: string[];
@@ -107,18 +105,24 @@ export type SdkKeyItem = {
   lastUsed: string;
 };
 
-export type AnalyticsTemplateItem = {
-  title: string;
-  description: string;
-  metric: string;
-  filters: string[];
-};
-
 export type AnalyticsFunnelStep = {
   step: string;
   eventName: string;
   users: string;
+  usersValue: number;
   conversion: string;
+  conversionRate: number;
+};
+
+export type AnalyticsRetentionItem = {
+  cohort: string;
+  day: number;
+  cohortUsers: string;
+  cohortUsersValue: number;
+  retainedUsers: string;
+  retainedUsersValue: number;
+  retention: string;
+  retentionRate: number;
 };
 
 export type AnalyticsTrendItem = {
@@ -127,12 +131,23 @@ export type AnalyticsTrendItem = {
   environment: string;
   source: string;
   eventCount: string;
+  eventCountValue: number;
   uniqueUsers: string;
+  uniqueUsersValue: number;
 };
 
-export type ReportTemplateItem = {
-  type: string;
-  cadence: string;
-  description: string;
-  inputs: string[];
+export type AnalyticsPropertyValueItem = {
+  propertyKey: string;
+  propertyValue: string;
+  distinctValues: number;
+  eventCount: string;
+  eventCountValue: number;
+  uniqueUsers: string;
+  uniqueUsersValue: number;
+};
+
+export type AnalyticsProjectOption = {
+  id: string;
+  name: string;
+  slug: string;
 };

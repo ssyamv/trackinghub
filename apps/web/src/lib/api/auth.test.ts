@@ -21,6 +21,9 @@ const store: AuthStore = {
         }
       : null,
   deleteSession: async () => undefined,
+  updateUserProfile: async () => {
+    throw new Error("not used");
+  },
 };
 
 describe("API auth helpers", () => {

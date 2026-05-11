@@ -8,6 +8,7 @@
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "clear:non-production-data": "node scripts/clear-non-production-data.mjs",
     "import:magic-frame": "node scripts/import-magic-frame-events.mjs",
+    "seed:demo-project": "node scripts/seed-demo-project.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run"

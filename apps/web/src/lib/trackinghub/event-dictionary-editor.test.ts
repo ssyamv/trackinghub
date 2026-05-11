@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyEventDictionaryAction,
+  buildEventDefinitionPatchPayload,
   type EditableEventDefinition,
 } from "./event-dictionary-editor";
 
@@ -69,5 +70,65 @@ describe("applyEventDictionaryAction", () => {
 
     expect(ready[0].status).toBe("ready");
     expect(deprecated[0].status).toBe("deprecated");
+  });
+});
+
+describe("buildEventDefinitionPatchPayload", () => {
+  it("keeps existing property metadata when saving dictionary edits", () => {
+    const payload = buildEventDefinitionPatchPayload(
+      {
+        displayName: "支付按钮点击",
+        description: " 点击支付按钮 ",
+        triggerTiming: "点击主按钮",
+        module: "checkout",
+        platforms: "Web, Flutter",
+        requiredProperties: "product_id, price, currency",
+        status: "ready",
+      },
+      {
+        ...definitions[0],
+        requiredPropertyDefinitions: [
+          {
+            name: "price",
+            type: "number",
+            required: true,
+            description: "支付金额",
+            exampleValue: 68,
+          },
+        ],
+      },
+    );
+
+    expect(payload).toMatchObject({
+      displayName: "支付按钮点击",
+      description: "点击支付按钮",
+      triggerTiming: "点击主按钮",
+      module: "checkout",
+      platforms: ["web", "flutter"],
+      status: "ready",
+    });
+    expect(payload.requiredProperties).toEqual([
+      {
+        name: "product_id",
+        type: "string",
+        required: true,
+        description: "",
+        exampleValue: null,
+      },
+      {
+        name: "price",
+        type: "number",
+        required: true,
+        description: "支付金额",
+        exampleValue: 68,
+      },
+      {
+        name: "currency",
+        type: "string",
+        required: true,
+        description: "",
+        exampleValue: null,
+      },
+    ]);
   });
 });

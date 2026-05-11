@@ -69,4 +69,15 @@ export const defaultAuthStore: AuthStore = {
       hashSessionToken(token),
     ]);
   },
+
+  async updateUserProfile(userId, input) {
+    const result = await queryPostgres<UserRow>(
+      `UPDATE users
+       SET name = $2, updated_at = now()
+       WHERE id = $1 AND enabled = true
+       RETURNING id, email, name, role, password_hash, enabled`,
+      [userId, input.name],
+    );
+    return result.rows[0] ? toUser(result.rows[0]) : null;
+  },
 };

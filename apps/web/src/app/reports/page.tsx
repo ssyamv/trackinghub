@@ -3,13 +3,16 @@ import { PageHeader } from "@/components/trackinghub/page-header";
 import { ReportsWorkbench } from "@/components/trackinghub/reports-workbench";
 import type { AnalyticsFilterInput } from "@/lib/analytics/clickhouse-analytics";
 import {
-  buildDailyReportDraftHref,
   generateDailyReportDraft,
   shouldGenerateDailyReportDraft,
 } from "@/lib/reports/report-draft";
 import { loadReportPreviewData } from "@/lib/reports/report-preview";
+import { getCurrentUserFromCookieHeader } from "@/lib/api/auth";
+import { assertCanRead } from "@/lib/auth/permissions";
+import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
+import { getPostgresConnectionString } from "@/lib/metadata/postgres";
 import { pageShells } from "@/lib/trackinghub/page-shells";
-import { reportTemplateItems } from "@/lib/trackinghub/report-templates";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +22,41 @@ type ReportsPageProps = {
     | Promise<AnalyticsFilterInput>;
 };
 
+async function getReportProjectOptions() {
+  if (!getPostgresConnectionString()) {
+    return [];
+  }
+
+  const user = await getCurrentUserFromCookieHeader(
+    (await headers()).get("cookie"),
+  );
+
+  if (!user) {
+    return [];
+  }
+
+  try {
+    assertCanRead(user);
+    const overview = await defaultMetadataStore.listProjectsOverview();
+
+    return overview.projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      slug: project.slug,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const filters = await Promise.resolve(searchParams ?? {});
-  const preview = await loadReportPreviewData({
-    filters,
-  });
+  const [preview, projectOptions] = await Promise.all([
+    loadReportPreviewData({
+      filters,
+    }),
+    getReportProjectOptions(),
+  ]);
   const dailyDraft = shouldGenerateDailyReportDraft(filters) &&
     preview.source !== "unavailable"
     ? generateDailyReportDraft(preview)
@@ -32,16 +65,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   return (
     <AppShell activeHref="/reports">
       <PageHeader
-        description={pageShells.reports.description}
         eyebrow={pageShells.reports.eyebrow}
         title={pageShells.reports.title}
       />
       <div className="mt-6">
         <ReportsWorkbench
           dailyDraft={dailyDraft}
-          dailyDraftHref={buildDailyReportDraftHref(preview)}
           preview={preview}
-          templates={reportTemplateItems}
+          projectOptions={projectOptions}
         />
       </div>
     </AppShell>

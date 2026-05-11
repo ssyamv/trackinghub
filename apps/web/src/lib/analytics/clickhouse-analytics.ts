@@ -1,5 +1,7 @@
 import type {
   AnalyticsFunnelStep,
+  AnalyticsPropertyValueItem,
+  AnalyticsRetentionItem,
   AnalyticsTrendItem,
   StatusCard,
 } from "@/lib/trackinghub/types";
@@ -9,6 +11,9 @@ export type AnalyticsData = {
   metrics: StatusCard[];
   trendItems: AnalyticsTrendItem[];
   funnelSteps: AnalyticsFunnelStep[];
+  retentionItems: AnalyticsRetentionItem[];
+  propertyItems: AnalyticsPropertyValueItem[];
+  propertyKeyCount: number;
 };
 
 export type AnalyticsRange = "7d" | "30d";
@@ -21,6 +26,9 @@ export type AnalyticsFilters = {
   environment?: AnalyticsEnvironment;
   source?: AnalyticsSource;
   eventName?: string;
+  propertyKey?: string;
+  dateFrom?: string;
+  dateTo?: string;
   funnelSteps: string[];
   granularity: AnalyticsGranularity;
   range: AnalyticsRange;
@@ -33,6 +41,12 @@ export type AnalyticsFilterInput = Partial<{
   source: unknown;
   eventName: unknown;
   event_name: unknown;
+  propertyKey: unknown;
+  property_key: unknown;
+  dateFrom: unknown;
+  date_from: unknown;
+  dateTo: unknown;
+  date_to: unknown;
   funnelSteps: unknown;
   funnel_steps: unknown;
   granularity: unknown;
@@ -76,6 +90,35 @@ function cleanIdentifierValue(input: string | undefined) {
   return /^[A-Za-z0-9_.:-]+$/.test(input) ? input : undefined;
 }
 
+function cleanDateValue(value: unknown) {
+  const input = firstValue(value);
+
+  if (!input || !/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return undefined;
+  }
+
+  const date = new Date(`${input}T00:00:00.000Z`);
+
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== input
+    ? undefined
+    : input;
+}
+
+function dateValueMs(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).getTime();
+}
+
+function normalizeDateRange(input: AnalyticsFilterInput) {
+  const dateFrom = cleanDateValue(input.dateFrom ?? input.date_from);
+  const dateTo = cleanDateValue(input.dateTo ?? input.date_to);
+
+  if (!dateFrom || !dateTo || dateValueMs(dateFrom) > dateValueMs(dateTo)) {
+    return {};
+  }
+
+  return { dateFrom, dateTo };
+}
+
 function rawFunnelStepValues(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.flatMap(rawFunnelStepValues);
@@ -107,6 +150,8 @@ export function normalizeAnalyticsFilters(
   const granularity = firstValue(input.granularity);
   const range = firstValue(input.range);
 
+  const dateRange = normalizeDateRange(input);
+
   return {
     projectId: cleanIdentifier(input.projectId ?? input.project_id),
     environment:
@@ -115,6 +160,8 @@ export function normalizeAnalyticsFilters(
         : undefined,
     source: source === "web" || source === "flutter" ? source : undefined,
     eventName: cleanIdentifier(input.eventName ?? input.event_name),
+    propertyKey: cleanIdentifier(input.propertyKey ?? input.property_key),
+    ...dateRange,
     funnelSteps: normalizeFunnelSteps(input.funnelSteps ?? input.funnel_steps),
     granularity: granularity === "hour" ? "hour" : "day",
     range: range === "30d" ? "30d" : "7d",
@@ -231,8 +278,32 @@ function rangeDays(filters: AnalyticsFilters) {
   return filters.range === "30d" ? 30 : 7;
 }
 
-function rangeLabel(filters: AnalyticsFilters) {
+function customRangeDays(filters: AnalyticsFilters) {
+  if (!filters.dateFrom || !filters.dateTo) {
+    return undefined;
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  return Math.floor((dateValueMs(filters.dateTo) - dateValueMs(filters.dateFrom)) / dayMs) + 1;
+}
+
+function effectiveRangeDays(filters: AnalyticsFilters) {
+  return customRangeDays(filters) ?? rangeDays(filters);
+}
+
+export function analyticsRangeLabel(filters: AnalyticsFilters) {
+  if (filters.dateFrom && filters.dateTo) {
+    return `${filters.dateFrom} 至 ${filters.dateTo}`;
+  }
+
   return `最近 ${rangeDays(filters)} 天`;
+}
+
+function rangeMetricDetail(filters: AnalyticsFilters, suffix: string) {
+  const label = analyticsRangeLabel(filters);
+  const separator = label.startsWith("最近 ") ? "" : " ";
+
+  return `${label}${separator}${suffix}`;
 }
 
 function clickHouseString(value: string) {
@@ -244,9 +315,13 @@ function filterConditions(
   timeColumn: string,
   options: { includeEventName?: boolean } = {},
 ) {
-  const conditions = [
-    `${timeColumn} >= now() - INTERVAL ${rangeDays(filters)} DAY`,
-  ];
+  const conditions =
+    filters.dateFrom && filters.dateTo
+      ? [
+          `${timeColumn} >= toDateTime64(${clickHouseString(`${filters.dateFrom} 00:00:00`)}, 3, 'UTC')`,
+          `${timeColumn} < toDateTime64(${clickHouseString(`${filters.dateTo} 00:00:00`)}, 3, 'UTC') + INTERVAL 1 DAY`,
+        ]
+      : [`${timeColumn} >= now() - INTERVAL ${rangeDays(filters)} DAY`];
   const includeEventName = options.includeEventName ?? true;
 
   if (filters.projectId) {
@@ -272,6 +347,10 @@ function bucketExpression(filters: AnalyticsFilters) {
   return filters.granularity === "hour"
     ? "toStartOfHour(timestamp)"
     : "toStartOfDay(timestamp)";
+}
+
+function trendLimit(filters: AnalyticsFilters) {
+  return Math.min(effectiveRangeDays(filters), 366) * 24;
 }
 
 function buildOverviewQuery(filters: AnalyticsFilters) {
@@ -310,7 +389,41 @@ function buildTrendQuery(filters: AnalyticsFilters) {
     WHERE ${filterConditions(filters, "timestamp").trim()}
     GROUP BY bucket, event_name, environment, source
     ORDER BY bucket DESC, event_count DESC
-    LIMIT ${filters.granularity === "hour" ? 48 : 30}
+    LIMIT ${trendLimit(filters)}
+    FORMAT JSONEachRow
+  `;
+}
+
+function buildPropertyDistributionQuery(filters: AnalyticsFilters) {
+  return `
+    SELECT
+      property_key,
+      property_value,
+      event_count,
+      unique_users,
+      count() OVER (PARTITION BY property_key) AS distinct_values
+    FROM (
+      SELECT
+        property_key,
+        property_value,
+        count() AS event_count,
+        uniqExact(identity) AS unique_users
+      FROM (
+        SELECT
+          tupleElement(property_item, 1) AS property_key,
+          coalesce(
+            nullIf(replaceRegexpAll(tupleElement(property_item, 2), '^"|"$', ''), ''),
+            '未提供'
+          ) AS property_value,
+          ${identityExpression()} AS identity
+        FROM raw_events
+        ARRAY JOIN JSONExtractKeysAndValuesRaw(properties) AS property_item
+        WHERE ${filterConditions(filters, "timestamp").trim()}
+      )
+      GROUP BY property_key, property_value
+    )
+    ORDER BY property_key ASC, event_count DESC
+    LIMIT 300
     FORMAT JSONEachRow
   `;
 }
@@ -367,6 +480,54 @@ ${stepQueries}
   `;
 }
 
+function buildRetentionQuery(filters: AnalyticsFilters) {
+  return `
+    WITH
+      filtered AS (
+        SELECT
+          ${identityExpression()} AS identity,
+          toDate(timestamp) AS active_date
+        FROM raw_events
+        WHERE ${filterConditions(filters, "timestamp").trim()}
+      ),
+      cohorts AS (
+        SELECT
+          identity,
+          min(active_date) AS cohort_date
+        FROM filtered
+        GROUP BY identity
+      ),
+      cohort_sizes AS (
+        SELECT
+          cohort_date,
+          count() AS cohort_users
+        FROM cohorts
+        GROUP BY cohort_date
+      ),
+      activity AS (
+        SELECT
+          cohorts.cohort_date AS cohort_date,
+          dateDiff('day', cohorts.cohort_date, filtered.active_date) AS day_number,
+          uniqExact(filtered.identity) AS retained_users
+        FROM filtered
+        INNER JOIN cohorts ON filtered.identity = cohorts.identity
+        WHERE filtered.active_date >= cohorts.cohort_date
+        GROUP BY cohort_date, day_number
+      )
+    SELECT
+      toString(activity.cohort_date) AS cohort,
+      activity.day_number AS day_number,
+      cohort_sizes.cohort_users AS cohort_users,
+      activity.retained_users AS retained_users
+    FROM activity
+    INNER JOIN cohort_sizes ON activity.cohort_date = cohort_sizes.cohort_date
+    WHERE day_number IN (0, 1, 7, 14, 30)
+    ORDER BY activity.cohort_date DESC, day_number ASC
+    LIMIT 160
+    FORMAT JSONEachRow
+  `;
+}
+
 function mapMetrics(
   overviewRow: ClickHouseRow | undefined,
   validationRow: ClickHouseRow | undefined,
@@ -381,13 +542,13 @@ function mapMetrics(
     {
       label: "事件量",
       value: formatCompact(eventCount),
-      detail: `${rangeLabel(filters)}接收事件`,
+      detail: rangeMetricDetail(filters, "接收事件"),
       tone: "blue",
     },
     {
       label: "活跃用户",
       value: formatCompact(activeUsers),
-      detail: `${rangeLabel(filters)}去重用户`,
+      detail: rangeMetricDetail(filters, "去重用户"),
       tone: "green",
     },
     {
@@ -409,26 +570,79 @@ function mapMetrics(
 }
 
 function mapTrendItems(rows: ClickHouseRow[]): AnalyticsTrendItem[] {
-  return rows.map((row) => ({
-    bucket: formatDateTime(row.bucket),
-    eventName: String(row.event_name ?? ""),
-    environment: String(row.environment ?? ""),
-    source: String(row.source ?? ""),
-    eventCount: formatCompact(toNumber(row.event_count)),
-    uniqueUsers: formatCompact(toNumber(row.unique_users)),
-  }));
+  return rows.map((row) => {
+    const eventCount = toNumber(row.event_count);
+    const uniqueUsers = toNumber(row.unique_users);
+
+    return {
+      bucket: formatDateTime(row.bucket),
+      eventName: String(row.event_name ?? ""),
+      environment: String(row.environment ?? ""),
+      source: String(row.source ?? ""),
+      eventCount: formatCompact(eventCount),
+      eventCountValue: eventCount,
+      uniqueUsers: formatCompact(uniqueUsers),
+      uniqueUsersValue: uniqueUsers,
+    };
+  });
+}
+
+function mapPropertyItems(
+  rows: ClickHouseRow[],
+  propertyKey: string | undefined,
+): AnalyticsPropertyValueItem[] {
+  return rows.map((row) => {
+    const eventCount = toNumber(row.event_count);
+    const uniqueUsers = toNumber(row.unique_users);
+
+    return {
+      propertyKey: String(row.property_key ?? propertyKey ?? ""),
+      propertyValue: String(row.property_value ?? "未提供"),
+      distinctValues: toNumber(row.distinct_values),
+      eventCount: formatCompact(eventCount),
+      eventCountValue: eventCount,
+      uniqueUsers: formatCompact(uniqueUsers),
+      uniqueUsersValue: uniqueUsers,
+    };
+  });
+}
+
+function propertyKeyCount(rows: ClickHouseRow[]) {
+  return new Set(rows.map((row) => String(row.property_key ?? ""))).size;
 }
 
 function mapFunnelSteps(rows: ClickHouseRow[]): AnalyticsFunnelStep[] {
-  const firstStepUsers = toNumber(rows[0]?.users);
+  const sortedRows = [...rows].sort(
+    (left, right) => toNumber(left.step) - toNumber(right.step),
+  );
+  const firstStepUsers = toNumber(sortedRows[0]?.users);
 
-  return rows.map((row) => {
+  return sortedRows.map((row) => {
     const users = toNumber(row.users);
     return {
       step: String(row.step ?? ""),
       eventName: String(row.event_name ?? ""),
       users: formatCompact(users),
+      usersValue: users,
       conversion: formatPercent(users, firstStepUsers),
+      conversionRate: firstStepUsers > 0 ? users / firstStepUsers : 0,
+    };
+  });
+}
+
+function mapRetentionItems(rows: ClickHouseRow[]): AnalyticsRetentionItem[] {
+  return rows.map((row) => {
+    const cohortUsers = toNumber(row.cohort_users);
+    const retainedUsers = toNumber(row.retained_users);
+    return {
+      cohort: String(row.cohort ?? ""),
+      day: toNumber(row.day_number),
+      cohortUsers: formatCompact(cohortUsers),
+      cohortUsersValue: cohortUsers,
+      retainedUsers: formatCompact(retainedUsers),
+      retainedUsersValue: retainedUsers,
+      retention: formatPercent(retainedUsers, cohortUsers),
+      retentionRate: cohortUsers > 0 ? retainedUsers / cohortUsers : 0,
     };
   });
 }
@@ -455,8 +669,14 @@ export function createClickHouseAnalyticsClientFromEnv(
   return {
     async loadAnalytics(inputFilters) {
       const filters = normalizeAnalyticsFilters(inputFilters);
-      const [overviewRows, validationRows, trendRows, funnelRows] =
-        await Promise.all([
+      const [
+        overviewRows,
+        validationRows,
+        trendRows,
+        retentionRows,
+        funnelRows,
+        propertyRows,
+      ] = await Promise.all([
           queryClickHouseRows(
             fetchImpl,
             buildClickHouseUrl(clickHouseUrl, database, buildOverviewQuery(filters)),
@@ -472,6 +692,11 @@ export function createClickHouseAnalyticsClientFromEnv(
             buildClickHouseUrl(clickHouseUrl, database, buildTrendQuery(filters)),
             headers,
           ),
+          queryClickHouseRows(
+            fetchImpl,
+            buildClickHouseUrl(clickHouseUrl, database, buildRetentionQuery(filters)),
+            headers,
+          ),
           filters.funnelSteps.length >= 2
             ? queryClickHouseRows(
                 fetchImpl,
@@ -483,13 +708,27 @@ export function createClickHouseAnalyticsClientFromEnv(
                 headers,
               )
             : Promise.resolve([]),
+          filters.eventName
+            ? queryClickHouseRows(
+                fetchImpl,
+                buildClickHouseUrl(
+                  clickHouseUrl,
+                  database,
+                  buildPropertyDistributionQuery(filters),
+                ),
+                headers,
+              )
+            : Promise.resolve([]),
         ]);
 
       return {
         source: "clickhouse",
         metrics: mapMetrics(overviewRows[0], validationRows[0], filters),
         trendItems: mapTrendItems(trendRows),
+        retentionItems: mapRetentionItems(retentionRows),
         funnelSteps: mapFunnelSteps(funnelRows),
+        propertyItems: mapPropertyItems(propertyRows, filters.propertyKey),
+        propertyKeyCount: propertyKeyCount(propertyRows),
       };
     },
   };

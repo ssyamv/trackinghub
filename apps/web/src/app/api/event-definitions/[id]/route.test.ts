@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryMetadataStore } from "@/lib/metadata/metadata-store";
-import { handleEventDefinitionPatch } from "./handlers";
+import {
+  handleEventDefinitionDelete,
+  handleEventDefinitionPatch,
+} from "./handlers";
 
 async function createDefinition() {
   const store = createMemoryMetadataStore();
@@ -97,5 +100,24 @@ describe("/api/event-definitions/[id]", () => {
 
     expect(platformResponse.status).toBe(400);
     expect(statusResponse.status).toBe(400);
+  });
+
+  it("deletes event definitions for editors", async () => {
+    const { store, definition } = await createDefinition();
+
+    const response = await handleEventDefinitionDelete({
+      store,
+      user: { role: "editor" },
+      eventDefinitionId: definition.id,
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      data: { deleted: true },
+    });
+    await expect(
+      store.updateEventDefinition(definition.id, { status: "accepted" }),
+    ).rejects.toThrow("EVENT_DEFINITION_NOT_FOUND");
   });
 });

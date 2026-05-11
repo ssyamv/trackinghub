@@ -25,6 +25,9 @@ describe("POST /api/auth/login", () => {
       }),
       findUserBySessionToken: async () => null,
       deleteSession: async () => undefined,
+      updateUserProfile: async () => {
+        throw new Error("not used");
+      },
     };
 
     const response = await handleLoginPost(
@@ -63,6 +66,9 @@ describe("POST /api/auth/login", () => {
       },
       findUserBySessionToken: async () => null,
       deleteSession: async () => undefined,
+      updateUserProfile: async () => {
+        throw new Error("not used");
+      },
     };
 
     const response = await handleLoginPost(

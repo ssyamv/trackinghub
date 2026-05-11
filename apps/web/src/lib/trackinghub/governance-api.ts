@@ -2,7 +2,6 @@ import type { GovernanceWorkbenchProps } from "@/components/trackinghub/governan
 import type { EditableEventDefinition } from "@/lib/trackinghub/event-dictionary-editor";
 import type {
   EventDefinitionStatus,
-  EventPropertyRecord,
   EventValidationResultRecord,
   GovernanceOverview,
   PlatformSource,
@@ -52,16 +51,26 @@ function statusTone(status: EventDefinitionStatus) {
   return "warning" as const;
 }
 
-function detailPropertyType(type: EventPropertyRecord["type"]) {
-  return type === "number" || type === "boolean" ? type : "string";
-}
-
 function validationErrorDetail(result: EventValidationResultRecord) {
   return result.errors.length > 0 ? result.errors.join("；") : "样本通过";
 }
 
 function validationStatusTone(status: EventValidationResultRecord["status"]) {
   return status === "valid" ? ("success" as const) : ("danger" as const);
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value || value === "暂无") {
+    return "暂无";
+  }
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+
+  if (!match) {
+    return value;
+  }
+
+  return `${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
 }
 
 export function mapGovernanceOverviewToWorkbench(
@@ -103,7 +112,7 @@ export function mapGovernanceOverviewToWorkbench(
       },
       {
         label: "最近接收",
-        value: latest?.observedAt ?? first?.lastSeenAt ?? "暂无",
+        value: formatDateTime(latest?.observedAt ?? first?.lastSeenAt),
         detail: latest
           ? `${latest.eventName} / ${latest.environment}`
           : first?.name ?? "暂无事件",
@@ -120,48 +129,8 @@ export function mapGovernanceOverviewToWorkbench(
       owner: definition.module || "未分配",
       status: statusLabel(definition.status),
       statusTone: statusTone(definition.status),
-      lastSeen: definition.lastSeenAt ?? "暂无",
+      lastSeen: formatDateTime(definition.lastSeenAt),
     })),
-    eventDetail: first
-      ? {
-          eventName: first.name,
-          displayName: first.displayName,
-          businessGoal: first.description,
-          triggerTiming: first.triggerTiming,
-          platforms: first.platforms.map(sourceLabel),
-          requiredProperties: first.requiredProperties.map((property) => ({
-            name: property.name,
-            type: detailPropertyType(property.type),
-            description: property.description,
-            example: String(property.exampleValue ?? ""),
-          })),
-          recentSamples: validationResults.slice(0, 5).map((result) => ({
-            eventName: result.eventName,
-            environment: result.environment,
-            source: sourceLabel(result.source),
-            status: result.status,
-            errors: result.errors,
-            sampleEventId: result.sampleEventId,
-            observedAt: result.observedAt,
-          })),
-        }
-      : {
-          eventName: "暂无事件",
-          displayName: "暂无事件",
-          businessGoal: "创建事件定义后展示业务目标。",
-          triggerTiming: "创建事件定义后展示触发时机。",
-          platforms: [],
-          requiredProperties: [],
-          recentSamples: validationResults.slice(0, 5).map((result) => ({
-            eventName: result.eventName,
-            environment: result.environment,
-            source: sourceLabel(result.source),
-            status: result.status,
-            errors: result.errors,
-            sampleEventId: result.sampleEventId,
-            observedAt: result.observedAt,
-          })),
-        },
     acceptanceChecks: schemaAnomalies.map((result) => ({
       label: `${result.eventName} / ${result.status}`,
       detail: validationErrorDetail(result),
@@ -172,10 +141,13 @@ export function mapGovernanceOverviewToWorkbench(
       eventName: definition.name,
       displayName: definition.displayName,
       description: definition.description,
+      triggerTiming: definition.triggerTiming,
+      module: definition.module,
       platforms: definition.platforms.map(sourceLabel),
       requiredProperties: definition.requiredProperties.map(
         (property) => property.name,
       ),
+      requiredPropertyDefinitions: definition.requiredProperties,
       status: definition.status,
     })),
   };

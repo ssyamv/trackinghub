@@ -29,10 +29,10 @@ export function MetricCard({ label, value, detail, tone }: MetricCardProps) {
         <CardDescription className="font-semibold">{label}</CardDescription>
       </CardHeader>
       <CardContent>
-        <CardTitle className="text-[34px] leading-none tracking-normal">
+        <CardTitle className="break-words text-[34px] leading-none tracking-normal">
           {value}
         </CardTitle>
-        <p className="mt-3 text-sm leading-5 text-muted-foreground">{detail}</p>
+        <p className="mt-3 break-words text-sm leading-5 text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
   );

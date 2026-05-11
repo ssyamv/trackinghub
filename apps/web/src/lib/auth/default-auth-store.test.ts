@@ -102,4 +102,37 @@ describe("default auth store", () => {
       [hashSessionToken("plain_token")],
     );
   });
+
+  it("updates the user's display name and returns the public profile", async () => {
+    queryPostgresMock.mockResolvedValueOnce({
+      rows: [
+        {
+          id: "user_1",
+          email: "admin@example.com",
+          name: "运营管理员",
+          role: "admin",
+          password_hash: "hash_1",
+          enabled: true,
+        },
+      ],
+    } as never);
+
+    await expect(
+      defaultAuthStore.updateUserProfile("user_1", { name: "运营管理员" }),
+    ).resolves.toEqual({
+      id: "user_1",
+      email: "admin@example.com",
+      name: "运营管理员",
+      role: "admin",
+      passwordHash: "hash_1",
+      enabled: true,
+    });
+    expect(queryPostgresMock).toHaveBeenCalledWith(
+      `UPDATE users
+       SET name = $2, updated_at = now()
+       WHERE id = $1 AND enabled = true
+       RETURNING id, email, name, role, password_hash, enabled`,
+      ["user_1", "运营管理员"],
+    );
+  });
 });

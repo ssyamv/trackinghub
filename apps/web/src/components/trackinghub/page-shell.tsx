@@ -14,7 +14,6 @@ export function PageShell({
   return (
     <AppShell activeHref={activeHref}>
       <PageHeader
-        description={page.description}
         eyebrow={page.eyebrow}
         title={page.title}
       />
@@ -23,7 +22,6 @@ export function PageShell({
         <EmptyPageState
           action={<Button type="button">{page.actionLabel}</Button>}
           badge={page.badge}
-          description={page.description}
           sections={page.sections}
           title={page.title}
         />

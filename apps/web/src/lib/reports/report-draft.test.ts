@@ -51,7 +51,9 @@ const preview: ReportPreviewData = {
       environment: "prod",
       source: "web",
       eventCount: "120",
+      eventCountValue: 120,
       uniqueUsers: "88",
+      uniqueUsersValue: 88,
     },
   ],
   funnelSteps: [
@@ -59,13 +61,17 @@ const preview: ReportPreviewData = {
       step: "1",
       eventName: "product_detail_view",
       users: "100",
+      usersValue: 100,
       conversion: "100%",
+      conversionRate: 1,
     },
     {
       step: "2",
       eventName: "pay_button_click",
       users: "80",
+      usersValue: 80,
       conversion: "80.0%",
+      conversionRate: 0.8,
     },
   ],
   funnelDropoff: {

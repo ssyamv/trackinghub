@@ -49,6 +49,26 @@ function isProductionEnvironment(environmentName: string) {
   return environmentName === "prod" || environmentName === "production";
 }
 
+export function filterProjectsOverviewByProjectId(
+  overview: ProjectsOverview,
+  projectId: string,
+): ProjectsOverview {
+  if (!projectId) {
+    return overview;
+  }
+
+  const projects = overview.projects.filter((project) => project.id === projectId);
+  const selectedProjectIds = new Set(projects.map((project) => project.id));
+
+  return {
+    projects,
+    environments: overview.environments.filter((environment) =>
+      selectedProjectIds.has(environment.projectId),
+    ),
+    sdkKeys: overview.sdkKeys.filter((key) => selectedProjectIds.has(key.projectId)),
+  };
+}
+
 export function mapProjectsOverviewToWorkbench(
   overview: ProjectsOverview,
 ): ProjectManagementWorkbenchProps {

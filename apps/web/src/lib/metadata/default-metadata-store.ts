@@ -759,6 +759,17 @@ export const defaultMetadataStore: MetadataStore = {
     return findEventDefinition(id);
   },
 
+  async deleteEventDefinition(id) {
+    const result = await queryPostgres<QueryResultRow & { id: string }>(
+      "DELETE FROM event_definitions WHERE id = $1 RETURNING id",
+      [id],
+    );
+
+    if (!result.rows[0]) {
+      throw new MetadataStoreError("EVENT_DEFINITION_NOT_FOUND");
+    }
+  },
+
   async createAcceptanceRecord(eventDefinitionId, input) {
     await findEventDefinition(eventDefinitionId);
     const result = await queryPostgres<

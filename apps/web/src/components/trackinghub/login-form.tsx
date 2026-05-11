@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -52,7 +51,6 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
         <CardTitle className="text-2xl tracking-normal">
           登录 TrackingHub
         </CardTitle>
-        <CardDescription>内部项目埋点治理与分析平台</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>

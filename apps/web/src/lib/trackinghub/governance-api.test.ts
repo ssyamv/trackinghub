@@ -37,8 +37,13 @@ describe("governance api mapper", () => {
       platforms: "Web + Flutter",
       status: "待验收",
     });
-    expect(result.eventDetail.requiredProperties[0].name).toBe("product_id");
-    expect(result.editableDefinitions[0].eventName).toBe("pay_button_click");
+    expect(result.editableDefinitions[0]).toMatchObject({
+      eventName: "pay_button_click",
+      requiredProperties: ["product_id"],
+      requiredPropertyDefinitions: [
+        expect.objectContaining({ name: "product_id" }),
+      ],
+    });
   });
 
   it("preserves event ids and editable statuses from metadata definitions", () => {
@@ -155,7 +160,7 @@ describe("governance api mapper", () => {
         }),
         expect.objectContaining({
           label: "最近接收",
-          value: "2026-05-10T07:32:00.000Z",
+          value: "05-10 07:32",
           detail: "unplanned_event / prod",
         }),
       ]),
@@ -172,10 +177,6 @@ describe("governance api mapper", () => {
         tone: "danger",
       },
     ]);
-    expect(result.eventDetail.recentSamples?.map((sample) => sample.status)).toEqual([
-      "unknown_event",
-      "invalid",
-      "valid",
-    ]);
+    expect(result.events[0].lastSeen).toBe("05-10 07:31");
   });
 });

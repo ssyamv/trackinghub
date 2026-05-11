@@ -234,6 +234,7 @@ export type MetadataStore = {
       requiredProperties?: EventPropertyRecord[];
     },
   ): Promise<EventDefinitionRecord>;
+  deleteEventDefinition(id: string): Promise<void>;
   createAcceptanceRecord(
     eventDefinitionId: string,
     input: {
@@ -552,6 +553,12 @@ export function createMemoryMetadataStore(): MetadataStore {
       };
 
       return cloneEventDefinition(definitions[definitionIndex]);
+    },
+
+    async deleteEventDefinition(id) {
+      const definitionIndex = findEventDefinitionIndex(id);
+
+      definitions.splice(definitionIndex, 1);
     },
 
     async createAcceptanceRecord(eventDefinitionId, input) {

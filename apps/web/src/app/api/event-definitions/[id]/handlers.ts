@@ -189,3 +189,23 @@ export async function handleEventDefinitionPatch(
     return mapApiError(error);
   }
 }
+
+export async function handleEventDefinitionDelete({
+  store,
+  user,
+  eventDefinitionId,
+}: {
+  store: MetadataStore;
+  user: AuthenticatedUser | null;
+  eventDefinitionId: string;
+}) {
+  try {
+    assertCanWrite(user);
+
+    await store.deleteEventDefinition(eventDefinitionId);
+
+    return jsonOk({ deleted: true });
+  } catch (error) {
+    return mapApiError(error);
+  }
+}

@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -12,6 +15,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { navItems } from "@/lib/trackinghub/navigation";
+import { ProjectSwitcher, useCurrentProjectId } from "./project-switcher";
+import { SidebarUserMenu } from "./sidebar-user-menu";
 
 function normalizeHref(href: string) {
   if (href === "/") {
@@ -35,7 +40,20 @@ function isActiveHref(itemHref: string, activeHref: string) {
   );
 }
 
+function withProjectQuery(href: string, projectId: string) {
+  if (!projectId) {
+    return href;
+  }
+
+  const url = new URL(href, "http://localhost");
+  url.searchParams.set("project_id", projectId);
+
+  return `${url.pathname}${url.search}`;
+}
+
 export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
+  const projectId = useCurrentProjectId();
+
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="offcanvas">
       <SidebarHeader className="gap-4 px-4 py-5">
@@ -47,6 +65,7 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
             TrackingHub
           </span>
         </Link>
+        <ProjectSwitcher />
       </SidebarHeader>
 
       <SidebarContent>
@@ -58,19 +77,12 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    className="h-auto min-h-12 items-start py-2"
+                    className="h-10"
                     isActive={isActiveHref(item.href, activeHref)}
                     size="lg"
                   >
-                    <Link href={item.href}>
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate font-medium">
-                          {item.label}
-                        </span>
-                        <span className="truncate text-xs text-sidebar-foreground/60">
-                          {item.description}
-                        </span>
-                      </span>
+                    <Link href={withProjectQuery(item.href, projectId)}>
+                      <span className="truncate font-medium">{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -79,7 +91,9 @@ export function AppSidebar({ activeHref = "/" }: { activeHref?: string }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
+      <SidebarFooter>
+        <SidebarUserMenu />
+      </SidebarFooter>
     </Sidebar>
   );
 }

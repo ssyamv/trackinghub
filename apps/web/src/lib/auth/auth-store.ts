@@ -28,6 +28,10 @@ export type AuthStore = {
     now?: Date,
   ): Promise<AuthenticatedUser | null>;
   deleteSession(token: string): Promise<void>;
+  updateUserProfile(
+    userId: string,
+    input: { name: string },
+  ): Promise<AuthUserRecord | null>;
 };
 
 export function createSessionToken() {

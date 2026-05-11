@@ -12,9 +12,6 @@ export default function LoginPage() {
             <h1 className="text-3xl font-semibold tracking-normal text-foreground">
               统一管理埋点、验收和分析报告
             </h1>
-            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-              面向产品、运营和工程的内部工作台，集中维护事件字典、接入环境、SDK Key 和分析结果。
-            </p>
           </div>
           <div className="grid max-w-xl gap-3 sm:grid-cols-3">
             {["事件字典", "Schema 验收", "分析报告"].map((item) => (

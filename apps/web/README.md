@@ -72,6 +72,17 @@ TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true
 
 分析、报告和首页不回显占位数据；当 ClickHouse 不可用时，页面会显示“真实数据源不可用”或空状态。
 
+## Demo 项目
+
+如需展示平台全能力，可以写入一个固定数据的 `TrackingHub Demo` 项目。脚本会幂等写入 Postgres 项目、环境、SDK Key、事件字典、验证样本和报告；配置 ClickHouse 时还会写入最近 7 天的演示事件和验证结果。
+
+```bash
+pnpm --filter web seed:demo-project -- --dry-run
+pnpm --filter web seed:demo-project
+```
+
+如果只想写入 Postgres 元数据，可追加 `--skip-clickhouse`。写入成功后，左侧导航的“当前项目”可切换到 demo 项目，并把 `project_id` 保留到分析、治理和报告页面。
+
 ## 报告持久化
 
 `POST /api/reports` 可将生成后的日报、异常解释、漏斗掉点解释等报告写入 Postgres `reports` 表；`GET /api/reports?project_id=<project_id>` 可读取项目最近报告。读取需要登录，写入需要 `admin` 或 `editor` 角色。

@@ -5,14 +5,31 @@ import { getCurrentUserFromCookieHeader } from "@/lib/api/auth";
 import { assertCanRead } from "@/lib/auth/permissions";
 import { defaultMetadataStore } from "@/lib/metadata/default-metadata-store";
 import { getPostgresConnectionString } from "@/lib/metadata/postgres";
-import { mapProjectsOverviewToWorkbench } from "@/lib/trackinghub/project-api";
+import {
+  filterProjectsOverviewByProjectId,
+  mapProjectsOverviewToWorkbench,
+} from "@/lib/trackinghub/project-api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { pageShells } from "@/lib/trackinghub/page-shells";
 
 export const dynamic = "force-dynamic";
 
-async function getProjectsWorkbench() {
+type ProjectsPageSearchParams = {
+  project_id?: string | string[];
+};
+
+type ProjectsPageProps = {
+  searchParams?: ProjectsPageSearchParams | Promise<ProjectsPageSearchParams>;
+};
+
+function readProjectId(searchParams: ProjectsPageSearchParams) {
+  const projectId = searchParams.project_id;
+
+  return (Array.isArray(projectId) ? projectId[0] : projectId)?.trim() ?? "";
+}
+
+async function getProjectsWorkbench(projectId: string) {
   if (!getPostgresConnectionString()) {
     return {
       summaryCards: [
@@ -57,17 +74,20 @@ async function getProjectsWorkbench() {
   assertCanRead(user);
 
   return mapProjectsOverviewToWorkbench(
-    await defaultMetadataStore.listProjectsOverview(),
+    filterProjectsOverviewByProjectId(
+      await defaultMetadataStore.listProjectsOverview(),
+      projectId,
+    ),
   );
 }
 
-export default async function ProjectsPage() {
-  const workbench = await getProjectsWorkbench();
+export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
+  const projectId = readProjectId(await Promise.resolve(searchParams ?? {}));
+  const workbench = await getProjectsWorkbench(projectId);
 
   return (
     <AppShell activeHref="/projects">
       <PageHeader
-        description={pageShells.projects.description}
         eyebrow={pageShells.projects.eyebrow}
         title={pageShells.projects.title}
       />

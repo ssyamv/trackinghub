@@ -14,6 +14,9 @@ describe("POST /api/auth/logout", () => {
       deleteSession: async (token) => {
         deletedTokens.push(token);
       },
+      updateUserProfile: async () => {
+        throw new Error("not used");
+      },
     };
 
     const response = await handleLogoutPost(
