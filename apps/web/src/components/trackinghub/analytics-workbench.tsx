@@ -830,6 +830,8 @@ export function AnalyticsWorkbench({
         )}
       </section>
 
+      <DimensionDistribution groups={workbenchData.dimensionGroups} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">事件趋势与维度拆分</CardTitle>
@@ -849,8 +851,6 @@ export function AnalyticsWorkbench({
           )}
         </CardContent>
       </Card>
-
-      <DimensionDistribution groups={workbenchData.dimensionGroups} />
 
       <PropertyAnalysis
         eventName={activeFilters.eventName}
