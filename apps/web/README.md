@@ -28,7 +28,15 @@ pnpm run build
 
 ## 容器化运行
 
-仓库根目录提供 `docker-compose.yml`，会启动 Postgres、ClickHouse 和生产模式 Web：
+仓库根目录提供一键 Docker 安装脚本，会启动 Postgres、ClickHouse 和生产模式 Web，并初始化本地管理员：
+
+```bash
+bash scripts/install-docker.sh
+```
+
+脚本会在首次运行时从 `.env.example` 生成 `.env`，默认访问地址为 [http://localhost:3000](http://localhost:3000)，默认管理员邮箱为 `admin@trackinghub.local`；如果没有预先配置 `TRACKINGHUB_ADMIN_PASSWORD`，脚本会生成随机密码并写入本地 `.env`。
+
+如需手动运行 Compose，也可以在仓库根目录执行：
 
 ```bash
 docker compose up --build
