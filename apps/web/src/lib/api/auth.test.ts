@@ -56,6 +56,22 @@ describe("API auth helpers", () => {
     });
   });
 
+  it("treats stale session cookies as anonymous when Postgres is not configured", async () => {
+    const previousPostgresUrl = process.env.TRACKINGHUB_POSTGRES_URL;
+    const previousDatabaseUrl = process.env.DATABASE_URL;
+    delete process.env.TRACKINGHUB_POSTGRES_URL;
+    delete process.env.DATABASE_URL;
+
+    try {
+      await expect(
+        getCurrentUserFromCookieHeader("trackinghub_session=token_123"),
+      ).resolves.toBeNull();
+    } finally {
+      process.env.TRACKINGHUB_POSTGRES_URL = previousPostgresUrl;
+      process.env.DATABASE_URL = previousDatabaseUrl;
+    }
+  });
+
   it("maps session lookup failures to stable API errors", async () => {
     const response = await withApiUser(
       new Request("http://localhost/api/projects", {

@@ -2,6 +2,7 @@ import type { AuthStore } from "@/lib/auth/auth-store";
 import { defaultAuthStore } from "@/lib/auth/default-auth-store";
 import type { AuthenticatedUser } from "@/lib/auth/permissions";
 import { parseSessionCookie } from "@/lib/auth/session";
+import { getPostgresConnectionString } from "@/lib/metadata/postgres";
 import { mapApiError } from "./http";
 
 export async function getCurrentUser(
@@ -18,6 +19,10 @@ export async function getCurrentUserFromCookieHeader(
   const token = parseSessionCookie(cookieHeader);
 
   if (!token) {
+    return null;
+  }
+
+  if (store === defaultAuthStore && !getPostgresConnectionString()) {
     return null;
   }
 
