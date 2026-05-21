@@ -144,10 +144,15 @@ async function countClickHouseNonProductionRows(config, keepProjectIds) {
     config,
     `SELECT count() FROM event_validation_results WHERE project_id NOT IN (${keepList})`,
   );
+  const rawLogs = await queryClickHouse(
+    config,
+    `SELECT count() FROM raw_logs WHERE project_id NOT IN (${keepList})`,
+  );
 
   return {
     rawEvents: Number(rawEvents),
     validationResults: Number(validationResults),
+    rawLogs: Number(rawLogs),
   };
 }
 
@@ -160,6 +165,10 @@ async function clearClickHouseNonProductionRows(config, keepProjectIds) {
   await queryClickHouse(
     config,
     `ALTER TABLE event_validation_results DELETE WHERE project_id NOT IN (${keepList})`,
+  );
+  await queryClickHouse(
+    config,
+    `ALTER TABLE raw_logs DELETE WHERE project_id NOT IN (${keepList})`,
   );
 }
 
@@ -191,7 +200,7 @@ async function main() {
       keepProjectIds,
     );
     console.log(
-      `ClickHouse rows to delete: raw_events=${clickHouseCounts.rawEvents}, event_validation_results=${clickHouseCounts.validationResults}`,
+      `ClickHouse rows to delete: raw_events=${clickHouseCounts.rawEvents}, event_validation_results=${clickHouseCounts.validationResults}, raw_logs=${clickHouseCounts.rawLogs}`,
     );
   }
 

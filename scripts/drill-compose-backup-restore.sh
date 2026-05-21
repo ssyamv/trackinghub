@@ -84,6 +84,7 @@ fi
 docker compose exec -T clickhouse clickhouse-client --query "CREATE DATABASE ${CLICKHOUSE_DRILL_DB}"
 restore_clickhouse_schema "$BACKUP_DIR/clickhouse-raw_events-schema.sql"
 restore_clickhouse_schema "$BACKUP_DIR/clickhouse-event_validation_results-schema.sql"
+restore_clickhouse_schema "$BACKUP_DIR/clickhouse-raw_logs-schema.sql"
 
 if [[ -s "$BACKUP_DIR/clickhouse-raw_events.jsonl" ]]; then
   docker compose exec -T clickhouse clickhouse-client \
@@ -99,10 +100,19 @@ if [[ -s "$BACKUP_DIR/clickhouse-event_validation_results.jsonl" ]]; then
     < "$BACKUP_DIR/clickhouse-event_validation_results.jsonl"
 fi
 
+if [[ -s "$BACKUP_DIR/clickhouse-raw_logs.jsonl" ]]; then
+  docker compose exec -T clickhouse clickhouse-client \
+    --database "$CLICKHOUSE_DRILL_DB" \
+    --query "INSERT INTO raw_logs FORMAT JSONEachRow" \
+    < "$BACKUP_DIR/clickhouse-raw_logs.jsonl"
+fi
+
 expected_raw_events="$(manifest_value clickhouse_raw_events)"
 expected_validation_results="$(manifest_value clickhouse_validation_results)"
+expected_raw_logs="$(manifest_value clickhouse_raw_logs)"
 actual_raw_events="$(docker compose exec -T clickhouse clickhouse-client --database "$CLICKHOUSE_DRILL_DB" --query "SELECT count() FROM raw_events")"
 actual_validation_results="$(docker compose exec -T clickhouse clickhouse-client --database "$CLICKHOUSE_DRILL_DB" --query "SELECT count() FROM event_validation_results")"
+actual_raw_logs="$(docker compose exec -T clickhouse clickhouse-client --database "$CLICKHOUSE_DRILL_DB" --query "SELECT count() FROM raw_logs")"
 
 if [[ "$actual_raw_events" != "$expected_raw_events" ]]; then
   echo "ClickHouse raw_events count mismatch: expected $expected_raw_events, got $actual_raw_events" >&2
@@ -114,6 +124,11 @@ if [[ "$actual_validation_results" != "$expected_validation_results" ]]; then
   exit 1
 fi
 
+if [[ "$actual_raw_logs" != "$expected_raw_logs" ]]; then
+  echo "ClickHouse raw_logs count mismatch: expected $expected_raw_logs, got $actual_raw_logs" >&2
+  exit 1
+fi
+
 {
   echo "timestamp_utc=$(date -u +"%Y%m%dT%H%M%SZ")"
   echo "status=ok"
@@ -122,6 +137,7 @@ fi
   echo "postgres_event_definitions=$actual_event_definitions"
   echo "clickhouse_raw_events=$actual_raw_events"
   echo "clickhouse_validation_results=$actual_validation_results"
+  echo "clickhouse_raw_logs=$actual_raw_logs"
 } > "$BACKUP_DIR/restore-drill.txt"
 
 echo "Backup restore drill ok:"
@@ -129,3 +145,4 @@ echo "postgres_projects=$actual_projects"
 echo "postgres_event_definitions=$actual_event_definitions"
 echo "clickhouse_raw_events=$actual_raw_events"
 echo "clickhouse_validation_results=$actual_validation_results"
+echo "clickhouse_raw_logs=$actual_raw_logs"

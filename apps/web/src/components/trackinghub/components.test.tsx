@@ -19,6 +19,7 @@ import { GovernanceWorkbench } from "./governance-workbench";
 import { HomeEventTrendChart } from "./home-event-trend-chart";
 import { HomeRangeSwitcher } from "./home-range-switcher";
 import { LoginForm } from "./login-form";
+import { LogsWorkbench } from "./logs-workbench";
 import { MetricCard } from "./metric-card";
 import { PageHeader } from "./page-header";
 import { ProjectManagementWorkbench } from "./project-management-workbench";
@@ -627,6 +628,54 @@ describe("TrackingHub dashboard components", () => {
     expect(html).toContain("暂不能生成指标卡片");
     expect(html).toContain("当前筛选范围暂无漏斗数据。");
     expect(html).not.toContain("当前筛选范围暂无留存数据。");
+  });
+
+  it("renders logs filters, metrics, level distribution, and recent rows", () => {
+    const html = renderToStaticMarkup(
+      <LogsWorkbench
+        logs={{
+          source: "clickhouse",
+          filters: {
+            projectId: "project_x",
+            level: "error",
+            q: "checkout",
+            range: "7d",
+          },
+          metrics: [
+            {
+              label: "日志量",
+              value: "42",
+              detail: "最近 7 天接收日志",
+              tone: "blue",
+            },
+          ],
+          levelCounts: [{ level: "error", count: 7, share: "16.7%" }],
+          items: [
+            {
+              logId: "log_123",
+              level: "error",
+              message: "Checkout failed",
+              logger: "checkout",
+              environment: "prod",
+              source: "web",
+              timestamp: "05-21 10:00",
+              receivedAt: "05-21 10:00",
+              identity: "u_123",
+              appVersion: "1.2.0",
+              traceId: "trace_123",
+              errorSummary: "CheckoutError: payment timeout",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(html).toContain("项目 ID");
+    expect(html).toContain("级别分布");
+    expect(html).toContain("最近日志");
+    expect(html).toContain("Checkout failed");
+    expect(html).toContain("CheckoutError: payment timeout");
+    expect(html).toContain("trace_123");
   });
 
   it("renders report preview data", () => {

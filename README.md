@@ -1,6 +1,6 @@
 # TrackingHub
 
-TrackingHub 是内部多项目埋点治理与产品分析平台，包含 Web 管理后台、事件接收 API、Web SDK、Flutter SDK，以及面向 Docker Compose 的本地生产候选运行栈。
+TrackingHub 是内部多项目埋点治理与产品分析平台，包含 Web 管理后台、事件与日志接收 API、Web SDK、Flutter SDK，以及面向 Docker Compose 的本地生产候选运行栈。
 
 ## Docker 一键安装
 

@@ -8,6 +8,7 @@ export type TrackingHubEnvironment =
 
 export type TrackingHubContext = Record<string, unknown>;
 export type TrackingHubProperties = Record<string, unknown>;
+export type TrackingHubLogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 export type TrackingHubStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 export type TrackingHubQueueOptions = {
@@ -27,6 +28,7 @@ export type TrackingHubFlushResult = {
 
 export type TrackingHubClientOptions = {
   endpoint: string;
+  logsEndpoint?: string;
   projectId: string;
   environment: TrackingHubEnvironment;
   writeKey: string;
@@ -56,11 +58,29 @@ export type TrackOptions = {
   context?: TrackingHubContext;
 };
 
+export type LogOptions = Omit<TrackOptions, "campaign"> & {
+  logger?: string;
+  traceId?: string;
+  attributes?: TrackingHubProperties;
+  error?:
+    | Error
+    | {
+        name?: string;
+        message?: string;
+        stack?: string;
+      };
+};
+
 export type TrackingHubClient = {
   track: (
     eventName: string,
     properties?: TrackingHubProperties,
     options?: TrackOptions,
+  ) => Promise<Response>;
+  log: (
+    level: TrackingHubLogLevel,
+    message: string,
+    options?: LogOptions,
   ) => Promise<Response>;
   flush: (options?: { force?: boolean }) => Promise<TrackingHubFlushResult>;
   pendingCount: () => Promise<number>;
@@ -247,6 +267,22 @@ function queuedResponse() {
   return new Response(JSON.stringify({ queued: true }), { status: 202 });
 }
 
+function defaultLogsEndpoint(endpoint: string) {
+  return endpoint.replace(/\/api\/events\/?$/, "/api/logs");
+}
+
+function serializeError(error: LogOptions["error"] | undefined) {
+  if (!error) {
+    return {};
+  }
+
+  return {
+    error_name: error.name,
+    error_message: error.message,
+    stack: error.stack,
+  };
+}
+
 export function createTrackingHubClient(
   options: TrackingHubClientOptions,
 ): TrackingHubClient {
@@ -257,6 +293,7 @@ export function createTrackingHubClient(
   const deviceId = options.deviceId;
   const storage = resolveStorage(options.queue);
   const storageKey = queueKey(options.queue);
+  const logsEndpoint = options.logsEndpoint ?? defaultLogsEndpoint(options.endpoint);
 
   async function flush({ force = true }: { force?: boolean } = {}) {
     let delivered = 0;
@@ -323,6 +360,38 @@ export function createTrackingHubClient(
     return { delivered, deferred, dropped };
   }
 
+  async function send(endpoint: string, body: Record<string, unknown>) {
+      const headers = {
+        "content-type": "application/json",
+        "x-trackinghub-write-key": options.writeKey,
+      };
+
+      if (storage) {
+        const queue = readQueue(storage, storageKey);
+        queue.push({
+          id: fallbackId("event"),
+          endpoint,
+          body,
+          headers,
+          createdAt: now(),
+          attempts: 0,
+        });
+        writeQueue(
+          storage,
+          storageKey,
+          trimQueue(queue, now(), options.queue),
+        );
+        await flush({ force: false });
+        return queuedResponse();
+      }
+
+      return fetcher(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+  }
+
   return {
     flush,
     async pendingCount() {
@@ -334,7 +403,7 @@ export function createTrackingHubClient(
         ...trackOptions.context,
       };
 
-      const body: Record<string, unknown> = {
+      return send(options.endpoint, {
         project_id: options.projectId,
         environment: options.environment,
         source: "web",
@@ -351,36 +420,34 @@ export function createTrackingHubClient(
         country: trackOptions.country ?? options.country,
         properties,
         context,
+      });
+    },
+    async log(level, message, logOptions = {}) {
+      const context = {
+        ...options.context,
+        ...logOptions.context,
       };
 
-      const headers = {
-        "content-type": "application/json",
-        "x-trackinghub-write-key": options.writeKey,
-      };
-
-      if (storage) {
-        const queue = readQueue(storage, storageKey);
-        queue.push({
-          id: fallbackId("event"),
-          endpoint: options.endpoint,
-          body,
-          headers,
-          createdAt: now(),
-          attempts: 0,
-        });
-        writeQueue(
-          storage,
-          storageKey,
-          trimQueue(queue, now(), options.queue),
-        );
-        await flush({ force: false });
-        return queuedResponse();
-      }
-
-      return fetcher(options.endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
+      return send(logsEndpoint, {
+        project_id: options.projectId,
+        environment: options.environment,
+        source: "web",
+        level,
+        message,
+        logger: logOptions.logger,
+        user_id: logOptions.userId ?? options.userId,
+        anonymous_id: logOptions.anonymousId ?? anonymousId,
+        device_id: logOptions.deviceId ?? deviceId,
+        session_id: logOptions.sessionId ?? sessionId,
+        timestamp: now(),
+        app_version: logOptions.appVersion ?? options.appVersion,
+        sdk_version: SDK_VERSION,
+        channel: logOptions.channel ?? options.channel,
+        country: logOptions.country ?? options.country,
+        trace_id: logOptions.traceId,
+        ...serializeError(logOptions.error),
+        attributes: logOptions.attributes ?? {},
+        context,
       });
     },
   };

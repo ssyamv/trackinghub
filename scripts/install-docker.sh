@@ -215,6 +215,8 @@ main() {
 
   wait_for_service postgres
   wait_for_service clickhouse
+  info "应用 ClickHouse schema..."
+  bash "$ROOT_DIR/scripts/apply-clickhouse-schema.sh"
   wait_for_service web
   bootstrap_admin
 

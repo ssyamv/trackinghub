@@ -29,6 +29,13 @@ export const pageShells = {
     actionLabel: "生成日报",
     sections: ["日报草稿", "报告记录"],
   },
+  logs: {
+    title: "日志",
+    eyebrow: "Logs",
+    badge: "诊断日志",
+    actionLabel: "查询日志",
+    sections: ["日志概览", "级别分布", "最近日志"],
+  },
   settings: {
     title: "设置",
     eyebrow: "Settings",

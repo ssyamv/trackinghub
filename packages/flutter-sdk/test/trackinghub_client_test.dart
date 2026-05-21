@@ -58,6 +58,85 @@ void main() {
     });
   });
 
+  test('serializes and sends a shared Flutter log envelope', () async {
+    final sentLogs = <Map<String, Object?>>[];
+    final client = TrackingHubClient(
+      config: TrackingHubConfig(
+        endpoint: Uri.parse('https://tracking.example.com/api/events'),
+        logsEndpoint: Uri.parse('https://tracking.example.com/api/logs'),
+        projectId: 'project_x',
+        environment: TrackingHubEnvironment.production,
+        writeKey: 'write_key',
+      ),
+      transport: (endpoint, body, headers) async {
+        expect(endpoint.path, '/api/logs');
+        expect(headers['x-trackinghub-write-key'], 'write_key');
+        sentLogs.add(body);
+      },
+      now: () => DateTime.fromMillisecondsSinceEpoch(
+        1710000000000,
+        isUtc: true,
+      ),
+    );
+
+    await client.log(
+      TrackingHubLogLevel.error,
+      '图片上传失败',
+      logger: 'upload',
+      userId: 'u_123',
+      deviceId: 'device_456',
+      traceId: 'trace_123',
+      errorName: 'UploadException',
+      errorMessage: 'timeout',
+      stack: 'UploadException: timeout',
+      attributes: const {'upload_id': 'upload_1'},
+      context: const {'os_name': 'iOS'},
+    );
+
+    expect(sentLogs.single, {
+      'project_id': 'project_x',
+      'environment': 'production',
+      'source': 'flutter',
+      'level': 'error',
+      'message': '图片上传失败',
+      'logger': 'upload',
+      'user_id': 'u_123',
+      'anonymous_id': null,
+      'device_id': 'device_456',
+      'session_id': null,
+      'timestamp': 1710000000000,
+      'app_version': null,
+      'sdk_version': '0.1.0',
+      'channel': null,
+      'country': null,
+      'trace_id': 'trace_123',
+      'error_name': 'UploadException',
+      'error_message': 'timeout',
+      'stack': 'UploadException: timeout',
+      'attributes': {'upload_id': 'upload_1'},
+      'context': {'os_name': 'iOS'},
+    });
+  });
+
+  test('infers the Flutter logs endpoint from the events endpoint', () async {
+    final endpoints = <Uri>[];
+    final client = TrackingHubClient(
+      config: TrackingHubConfig(
+        endpoint: Uri.parse('https://tracking.example.com/api/events'),
+        projectId: 'project_x',
+        environment: TrackingHubEnvironment.production,
+        writeKey: 'write_key',
+      ),
+      transport: (endpoint, _, __) async {
+        endpoints.add(endpoint);
+      },
+    );
+
+    await client.log(TrackingHubLogLevel.info, 'ready');
+
+    expect(endpoints.single.toString(), 'https://tracking.example.com/api/logs');
+  });
+
   test('default HTTP transport posts JSON envelope with write key header',
       () async {
     final receivedRequests = <_ReceivedRequest>[];

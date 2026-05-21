@@ -118,18 +118,42 @@ enum TrackingHubEnvironment {
   final String value;
 }
 
+enum TrackingHubLogLevel {
+  debug('debug'),
+  info('info'),
+  warn('warn'),
+  error('error'),
+  fatal('fatal');
+
+  const TrackingHubLogLevel(this.value);
+
+  final String value;
+}
+
 class TrackingHubConfig {
-  const TrackingHubConfig({
+  TrackingHubConfig({
     required this.endpoint,
+    Uri? logsEndpoint,
     required this.projectId,
     required this.environment,
     required this.writeKey,
-  });
+  }) : logsEndpoint = logsEndpoint ?? _defaultLogsEndpoint(endpoint);
 
   final Uri endpoint;
+  final Uri logsEndpoint;
   final String projectId;
   final TrackingHubEnvironment environment;
   final String writeKey;
+}
+
+Uri _defaultLogsEndpoint(Uri endpoint) {
+  final path = endpoint.path.replaceFirst(RegExp(r'/api/events/?$'), '/api/logs');
+
+  if (path == endpoint.path) {
+    return endpoint;
+  }
+
+  return endpoint.replace(path: path);
 }
 
 class TrackingHubEvent {
@@ -182,6 +206,76 @@ class TrackingHubEvent {
       'campaign': campaign,
       'country': country,
       'properties': properties,
+      'context': context,
+    };
+  }
+}
+
+class TrackingHubLog {
+  const TrackingHubLog({
+    required this.config,
+    required this.level,
+    required this.message,
+    required this.timestamp,
+    required this.sdkVersion,
+    this.logger,
+    this.userId,
+    this.anonymousId,
+    this.deviceId,
+    this.sessionId,
+    this.appVersion,
+    this.channel,
+    this.country,
+    this.traceId,
+    this.errorName,
+    this.errorMessage,
+    this.stack,
+    this.attributes = const <String, Object?>{},
+    this.context = const <String, Object?>{},
+  });
+
+  final TrackingHubConfig config;
+  final TrackingHubLogLevel level;
+  final String message;
+  final String sdkVersion;
+  final String? logger;
+  final DateTime timestamp;
+  final String? userId;
+  final String? anonymousId;
+  final String? deviceId;
+  final String? sessionId;
+  final String? appVersion;
+  final String? channel;
+  final String? country;
+  final String? traceId;
+  final String? errorName;
+  final String? errorMessage;
+  final String? stack;
+  final Map<String, Object?> attributes;
+  final Map<String, Object?> context;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'project_id': config.projectId,
+      'environment': config.environment.value,
+      'source': 'flutter',
+      'level': level.value,
+      'message': message,
+      'logger': logger,
+      'user_id': userId,
+      'anonymous_id': anonymousId,
+      'device_id': deviceId,
+      'session_id': sessionId,
+      'timestamp': timestamp.toUtc().millisecondsSinceEpoch,
+      'app_version': appVersion,
+      'sdk_version': sdkVersion,
+      'channel': channel,
+      'country': country,
+      'trace_id': traceId,
+      'error_name': errorName,
+      'error_message': errorMessage,
+      'stack': stack,
+      'attributes': attributes,
       'context': context,
     };
   }
@@ -374,21 +468,67 @@ class TrackingHubClient {
       context: context,
     );
 
+    return _send(config.endpoint, event.toJson());
+  }
+
+  Future<void> log(
+    TrackingHubLogLevel level,
+    String message, {
+    String? logger,
+    Map<String, Object?> attributes = const <String, Object?>{},
+    Map<String, Object?> context = const <String, Object?>{},
+    DateTime? timestamp,
+    String? userId,
+    String? anonymousId,
+    String? deviceId,
+    String? sessionId,
+    String? appVersion,
+    String? channel,
+    String? country,
+    String? traceId,
+    String? errorName,
+    String? errorMessage,
+    String? stack,
+  }) async {
+    final log = TrackingHubLog(
+      config: config,
+      level: level,
+      message: message,
+      logger: logger,
+      timestamp: timestamp ?? _now(),
+      sdkVersion: sdkVersion,
+      userId: userId,
+      anonymousId: anonymousId,
+      deviceId: deviceId,
+      sessionId: sessionId,
+      appVersion: appVersion,
+      channel: channel,
+      country: country,
+      traceId: traceId,
+      errorName: errorName,
+      errorMessage: errorMessage,
+      stack: stack,
+      attributes: attributes,
+      context: context,
+    );
+
+    return _send(config.logsEndpoint, log.toJson());
+  }
+
+  Future<void> _send(Uri endpoint, Map<String, Object?> body) async {
     final headers = <String, String>{
       'content-type': 'application/json',
       'x-trackinghub-write-key': config.writeKey,
     };
-
-    final body = event.toJson();
     final store = queueStore;
     if (store == null) {
-      return transport(config.endpoint, body, headers);
+      return transport(endpoint, body, headers);
     }
 
     final queue = await store.load();
     queue.add(TrackingHubQueuedEvent(
       id: _fallbackId('event'),
-      endpoint: config.endpoint,
+      endpoint: endpoint,
       body: body,
       headers: headers,
       createdAt: _now(),

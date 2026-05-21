@@ -91,9 +91,10 @@ pnpm run drill:backup
 
 演练脚本会在当前 compose 的 Postgres 和 ClickHouse 中创建临时 restore 数据库，恢复备份数据并校验 manifest 中的项目、事件定义、raw events 和验证结果计数，结束后自动删除临时数据库，并在备份目录写入 `restore-drill.txt` 作为巡检凭据。也可以传入指定备份目录：`pnpm run drill:backup -- .trackinghub-backups/<timestamp>`。
 
-## 事件写入配置
+## 事件与日志写入配置
 
 `POST /api/events` 校验通过后会写入 ClickHouse `raw_events`。本地未配置 ClickHouse 时使用空写入器，便于 UI 与 SDK 开发。
+`POST /api/logs` 使用同一套 SDK write key 校验，校验通过后写入 ClickHouse `raw_logs`，用于 App/Web 诊断日志检索。
 
 ```bash
 TRACKINGHUB_CLICKHOUSE_URL=http://localhost:18123
@@ -102,13 +103,18 @@ TRACKINGHUB_CLICKHOUSE_USERNAME=writer
 TRACKINGHUB_CLICKHOUSE_PASSWORD=secret
 ```
 
-共享环境或生产环境必须启用事件持久化保护，避免事件被 API 接收后写入空实现：
+共享环境或生产环境必须启用持久化保护，避免事件或日志被 API 接收后写入空实现：
 
 ```bash
 TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true
+TRACKINGHUB_REQUIRE_LOG_PERSISTENCE=true
 ```
 
-当 `NODE_ENV=production` 或 `TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true` 且未配置 ClickHouse URL 时，`POST /api/events` 会返回 `503`，不会返回接收成功。
+当 `NODE_ENV=production`、`TRACKINGHUB_REQUIRE_EVENT_PERSISTENCE=true` 或 `TRACKINGHUB_REQUIRE_LOG_PERSISTENCE=true` 且未配置 ClickHouse URL 时，写入 API 会返回 `503`，不会返回接收成功。
+
+日志 envelope 使用英文协议字段：`project_id`、`environment`、`source`、`level`、`message`、`timestamp`、`sdk_version`、`attributes`、`context`，可选 `logger`、`user_id`、`device_id`、`session_id`、`trace_id`、`error_name`、`error_message`、`stack` 等诊断字段。`level` 支持 `debug`、`info`、`warn`、`error`、`fatal`。
+
+后台 `/logs` 页面会读取 `raw_logs`，支持按 `project_id`、环境、来源、级别、最近 7/30 天和关键词筛选，并展示日志量、错误数、Fatal 数、级别分布和最近日志。
 
 ## 分析查询配置
 
@@ -155,6 +161,53 @@ pnpm --filter web import:magic-frame -- --dry-run
 - Web SDK 在 `createTrackingHubClient` 中配置 `queue`，浏览器默认使用 `localStorage`，建议按项目设置独立 `storageKey`。
 - 两端都会先入队再尝试发送；网络异常、超时、`408`、`425`、`429`、`5xx` 会重试，`400`、`401` 等不可恢复错误会从队列丢弃。
 - App 启动、网络恢复、页面重新可见或前后台切换回来时，应主动调用 SDK 的 `flush()` 补发队列。
+
+Web SDK 事件和日志共用同一个可靠队列。`endpoint` 指向 `/api/events`，`logsEndpoint` 可显式指向 `/api/logs`；未传时 Web SDK 会从 `/api/events` 自动推导 `/api/logs`：
+
+```ts
+const trackingHub = createTrackingHubClient({
+  endpoint: "https://tracking.example.com/api/events",
+  projectId: "project_uuid",
+  environment: "production",
+  writeKey: "write_key",
+  queue: {
+    storageKey: "trackinghub:project_uuid",
+  },
+});
+
+await trackingHub.log("error", "Checkout failed", {
+  logger: "checkout",
+  traceId: "trace_123",
+  attributes: { order_id: "order_123" },
+  error: new Error("payment timeout"),
+});
+```
+
+Flutter SDK 通过 `TrackingHubConfig.logsEndpoint` 配置日志写入地址，日志也会进入同一个 `TrackingHubQueueStore`：
+
+```dart
+final client = TrackingHubClient(
+  config: TrackingHubConfig(
+    endpoint: Uri.parse('https://tracking.example.com/api/events'),
+    logsEndpoint: Uri.parse('https://tracking.example.com/api/logs'),
+    projectId: 'project_uuid',
+    environment: TrackingHubEnvironment.production,
+    writeKey: 'write_key',
+  ),
+  transport: TrackingHubHttpTransport().call,
+  queueStore: TrackingHubFileQueueStore(queueFile),
+);
+
+await client.log(
+  TrackingHubLogLevel.error,
+  '图片上传失败',
+  logger: 'upload',
+  traceId: 'trace_123',
+  errorName: 'UploadException',
+  errorMessage: 'timeout',
+  attributes: {'upload_id': 'upload_1'},
+);
+```
 
 ## 元数据数据库与本地管理员
 

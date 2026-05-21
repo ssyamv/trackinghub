@@ -15,6 +15,8 @@ mkdir -p "$BACKUP_DIR"
 
 echo "Backing up TrackingHub compose data to $BACKUP_DIR"
 
+bash "$ROOT_DIR/scripts/apply-clickhouse-schema.sh"
+
 docker compose exec -T postgres pg_dump \
   -U trackinghub \
   -d trackinghub \
@@ -37,6 +39,11 @@ docker compose exec -T clickhouse clickhouse-client \
 
 docker compose exec -T clickhouse clickhouse-client \
   --database trackinghub \
+  --query "SHOW CREATE TABLE raw_logs" \
+  > "$BACKUP_DIR/clickhouse-raw_logs-schema.sql"
+
+docker compose exec -T clickhouse clickhouse-client \
+  --database trackinghub \
   --query "SELECT * FROM raw_events FORMAT JSONEachRow" \
   > "$BACKUP_DIR/clickhouse-raw_events.jsonl"
 
@@ -45,6 +52,11 @@ docker compose exec -T clickhouse clickhouse-client \
   --query "SELECT * FROM event_validation_results FORMAT JSONEachRow" \
   > "$BACKUP_DIR/clickhouse-event_validation_results.jsonl"
 
+docker compose exec -T clickhouse clickhouse-client \
+  --database trackinghub \
+  --query "SELECT * FROM raw_logs FORMAT JSONEachRow" \
+  > "$BACKUP_DIR/clickhouse-raw_logs.jsonl"
+
 {
   echo "timestamp_utc=$TIMESTAMP"
   echo "git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
@@ -52,6 +64,7 @@ docker compose exec -T clickhouse clickhouse-client \
   echo "postgres_event_definitions=$(docker compose exec -T postgres psql -U trackinghub -d trackinghub -Atc "SELECT count(*) FROM event_definitions")"
   echo "clickhouse_raw_events=$(docker compose exec -T clickhouse clickhouse-client --database trackinghub --query "SELECT count() FROM raw_events")"
   echo "clickhouse_validation_results=$(docker compose exec -T clickhouse clickhouse-client --database trackinghub --query "SELECT count() FROM event_validation_results")"
+  echo "clickhouse_raw_logs=$(docker compose exec -T clickhouse clickhouse-client --database trackinghub --query "SELECT count() FROM raw_logs")"
   echo "checksums:"
   (cd "$BACKUP_DIR" && shasum -a 256 postgres.dump postgres-schema.sql clickhouse-*.sql clickhouse-*.jsonl)
 } > "$BACKUP_DIR/manifest.txt"

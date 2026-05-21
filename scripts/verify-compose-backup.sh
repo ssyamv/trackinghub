@@ -35,8 +35,10 @@ required_files=(
   "postgres-schema.sql"
   "clickhouse-raw_events-schema.sql"
   "clickhouse-event_validation_results-schema.sql"
+  "clickhouse-raw_logs-schema.sql"
   "clickhouse-raw_events.jsonl"
   "clickhouse-event_validation_results.jsonl"
+  "clickhouse-raw_logs.jsonl"
 )
 
 for file in "${required_files[@]}"; do
@@ -66,6 +68,11 @@ if ! grep -q "CREATE TABLE" "$BACKUP_DIR/clickhouse-event_validation_results-sch
   exit 1
 fi
 
+if ! grep -q "CREATE TABLE" "$BACKUP_DIR/clickhouse-raw_logs-schema.sql"; then
+  echo "clickhouse-raw_logs-schema.sql does not look like a ClickHouse schema" >&2
+  exit 1
+fi
+
 awk '/^checksums:/{flag=1; next} flag {print}' "$BACKUP_DIR/manifest.txt" \
   | (cd "$BACKUP_DIR" && shasum -a 256 -c -)
 
@@ -73,8 +80,10 @@ docker compose exec -T postgres pg_restore --list < "$BACKUP_DIR/postgres.dump" 
 
 raw_event_lines="$(wc -l < "$BACKUP_DIR/clickhouse-raw_events.jsonl" | tr -d ' ')"
 validation_lines="$(wc -l < "$BACKUP_DIR/clickhouse-event_validation_results.jsonl" | tr -d ' ')"
+raw_log_lines="$(wc -l < "$BACKUP_DIR/clickhouse-raw_logs.jsonl" | tr -d ' ')"
 
 echo "Backup verified:"
 echo "$BACKUP_DIR"
 echo "clickhouse_raw_event_lines=$raw_event_lines"
 echo "clickhouse_validation_result_lines=$validation_lines"
+echo "clickhouse_raw_log_lines=$raw_log_lines"
